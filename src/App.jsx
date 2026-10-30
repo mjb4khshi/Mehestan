@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useMoodleAuth } from './context/MoodleAuthContext';
 import TopBar from './components/TopBar';
 import BottomNav from './components/BottomNav';
@@ -8,11 +9,43 @@ import CourseDetailScreen from './screens/CourseDetailScreen';
 import AssignmentsScreen from './screens/AssignmentsScreen';
 import CalendarScreen from './screens/CalendarScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import { cleanCourseName } from './utils/persianUtils';
+
+const TABS_ORDER = ['courses', 'assignments', 'calendar', 'settings'];
+
+const pageVariants = {
+  enter: (direction) => ({
+    x: direction > 0 ? -24 : 24,
+    opacity: 0,
+    scale: 0.99,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+    scale: 1,
+    transition: {
+      x: { type: 'spring', stiffness: 380, damping: 34, mass: 0.8 },
+      opacity: { duration: 0.16, ease: 'easeOut' },
+      scale: { duration: 0.16, ease: 'easeOut' },
+    },
+  },
+  exit: (direction) => ({
+    x: direction > 0 ? 24 : -24,
+    opacity: 0,
+    scale: 0.99,
+    transition: {
+      x: { type: 'spring', stiffness: 380, damping: 34, mass: 0.8 },
+      opacity: { duration: 0.12, ease: 'easeIn' },
+      scale: { duration: 0.12, ease: 'easeIn' },
+    },
+  }),
+};
 
 export default function App() {
   const { isAuthenticated, assignments } = useMoodleAuth();
   const [activeTab, setActiveTab] = useState('courses');
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [slideDir, setSlideDir] = useState(0);
 
   if (!isAuthenticated) {
     return <LoginScreen />;
@@ -22,50 +55,63 @@ export default function App() {
   const pendingCount = assignments.filter((a) => a.duedate && a.duedate > nowSec).length;
 
   const handleSelectCourse = (course) => {
+    setSlideDir(1);
     setSelectedCourse(course);
   };
 
   const handleBackToCourses = () => {
+    setSlideDir(-1);
     setSelectedCourse(null);
   };
 
-  const handleChangeTab = (tab) => {
-    setSelectedCourse(null);
-    setActiveTab(tab);
-  };
-
-  const renderContent = () => {
+  const handleChangeTab = (nextTab) => {
     if (selectedCourse) {
-      return <CourseDetailScreen course={selectedCourse} onBack={handleBackToCourses} />;
+      setSlideDir(-1);
+      setSelectedCourse(null);
+    } else {
+      const prevIdx = TABS_ORDER.indexOf(activeTab);
+      const nextIdx = TABS_ORDER.indexOf(nextTab);
+      setSlideDir(nextIdx > prevIdx ? 1 : -1);
     }
-
-    switch (activeTab) {
-      case 'courses':
-        return (
-          <HomeScreen
-            onSelectCourse={handleSelectCourse}
-            onGoToAssignments={() => handleChangeTab('assignments')}
-          />
-        );
-      case 'assignments':
-        return <AssignmentsScreen />;
-      case 'calendar':
-        return <CalendarScreen />;
-      case 'settings':
-        return <SettingsScreen />;
-      default:
-        return <HomeScreen onSelectCourse={handleSelectCourse} />;
-    }
+    setActiveTab(nextTab);
   };
 
   return (
-    <div className="min-h-screen bg-base text-base-content flex flex-col pb-20 md:pb-0 selection:bg-primary/20">
+    <div className="min-h-screen bg-base text-base-content flex flex-col pb-24 selection:bg-primary/20">
       <TopBar
-        title={selectedCourse ? selectedCourse.fullname : 'مهستان'}
+        title={selectedCourse ? cleanCourseName(selectedCourse.fullname) : 'مهستان'}
         showBack={Boolean(selectedCourse)}
         onBack={handleBackToCourses}
       />
-      <main className="flex-1 overflow-y-auto">{renderContent()}</main>
+
+      {/* ترنزیشن روان و فنری صفحات بر اساس جهت حرکت سبک سروستان */}
+      <AnimatePresence mode="wait" custom={slideDir}>
+        <motion.main
+          key={selectedCourse ? `course-${selectedCourse.id}` : activeTab}
+          custom={slideDir}
+          variants={pageVariants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          className="flex-1 overflow-x-hidden"
+        >
+          {selectedCourse ? (
+            <CourseDetailScreen course={selectedCourse} onBack={handleBackToCourses} />
+          ) : activeTab === 'courses' ? (
+            <HomeScreen
+              onSelectCourse={handleSelectCourse}
+              onGoToAssignments={() => handleChangeTab('assignments')}
+            />
+          ) : activeTab === 'assignments' ? (
+            <AssignmentsScreen />
+          ) : activeTab === 'calendar' ? (
+            <CalendarScreen />
+          ) : (
+            <SettingsScreen />
+          )}
+        </motion.main>
+      </AnimatePresence>
+
       <BottomNav
         activeTab={selectedCourse ? 'courses' : activeTab}
         onChangeTab={handleChangeTab}
