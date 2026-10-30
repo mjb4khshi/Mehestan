@@ -1,0 +1,19 @@
+{
+  "appId": "ir.mjb4khshi.mehestan",
+  "appName": "Mehestan",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "android": {
+    "path": "android",
+    "allowMixedContent": false,
+    "backgroundColor": "#000000"
+  },
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}

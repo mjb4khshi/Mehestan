@@ -1,0 +1,92 @@
+@import "tailwindcss";
+@import "sarv-ui/sarv.css";
+@import "./mehestan-themes.css";
+@plugin "sarv-ui";
+
+@font-face {
+  font-family: 'Arad';
+  src: url('/fonts/AradVF.woff2') format('woff2-variations'),
+       url('/fonts/AradVF.woff2') format('woff2');
+  font-weight: 100 1000;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Arad';
+  src: url('/fonts/Arad-BlackDots2.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Arad';
+  src: url('/fonts/Arad-ExtraBoldDots2.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Arad';
+  src: url('/fonts/Arad-BoldDots2.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Arad';
+  src: url('/fonts/Arad-SemiBoldDots2.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Arad';
+  src: url('/fonts/Arad-MediumDots2.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Arad';
+  src: url('/fonts/Arad-RegularDots2.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Arad';
+  src: url('/fonts/Arad-LightDots2.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  font-family: 'Arad', system-ui, -apple-system, sans-serif;
+  color-scheme: dark light;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background-color: var(--theme-color-base, #0b0f19);
+  color: var(--theme-color-base-content, #f8fafc);
+  font-family: 'Arad', system-ui, sans-serif;
+}
+
+/* کارت‌های سبک سرو */
+.mehestan-card {
+  background: color-mix(in srgb, var(--theme-color-base, #0f172a) 85%, transparent);
+  border: 1px solid color-mix(in srgb, var(--theme-color-base-500, #334155) 40%, transparent);
+  border-radius: var(--theme-radius-card, 1.25rem);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}

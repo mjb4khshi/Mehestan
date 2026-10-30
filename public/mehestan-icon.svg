@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <defs>
+    <linearGradient id="mehestan-grad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+  </defs>
+  <!-- هلال ماه مهستان -->
+  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c2.25 0 4.33-.74 6-2-4.5 0-8-3.5-8-8 0-3.5 2.2-6.5 5.5-7.5C14.4 2.16 13.2 2 12 2z" fill="url(#mehestan-grad)" opacity="0.9" />
+  <!-- شاخه سرو درون ماه -->
+  <path d="M17 6L14 10h2l-3 4h2l-3 4h4" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
