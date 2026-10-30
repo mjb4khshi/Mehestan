@@ -7,10 +7,10 @@ export const UNIVERSITY_MOODLE_PRESETS = [
     id: 'kntu',
     name: 'دانشگاه صنعتی خواجه نصیرالدین طوسی',
     shortName: 'خواجه نصیر (KNTU)',
-    url: 'https://lms.kntu.ac.ir',
+    url: 'https://vc.kntu.ac.ir',
     mobileService: 'moodle_mobile_app',
-    authType: 'sso',
-    ssoButtonText: 'ورود با سامانه احراز هویت مرکزی خواجه نصیر (SSO)',
+    authType: 'credentials',
+    ssoButtonText: 'ورود به سامانه یادگیری خواجه نصیر',
     badge: 'احراز هویت مرکزی',
   },
   {

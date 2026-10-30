@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Palette,
   Bell,
@@ -9,16 +9,78 @@ import {
   X,
   Sparkles,
   GraduationCap,
+  Clock,
+  Loader2,
+  CheckCircle2,
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
+import { getNotifications } from '../services/moodle/api';
 import { cleanPersianText, toFaDigits } from '../utils/persianUtils';
 
 export default function TopBar({ title, onBack, showBack = false }) {
   const { theme, setTheme, themes, isDark } = useTheme();
-  const { siteInfo, refreshData, loading, logout, isAuthenticated } = useMoodleAuth();
+  const { session, siteInfo, refreshData, loading, logout, isAuthenticated } = useMoodleAuth();
   const [themeSheetOpen, setThemeSheetOpen] = useState(false);
   const [notifySheetOpen, setNotifySheetOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+
+  useEffect(() => {
+    if (!notifySheetOpen || !session) return;
+    async function loadNotifs() {
+      setLoadingNotifications(true);
+      try {
+        if (session.isDemo) {
+          setNotifications([
+            {
+              id: 1,
+              subject: 'نمره تمرین سری دوم ثبت گردید',
+              text: 'استاد درس ساختمان داده‌ها نمره ۱۸.۵ را برای تمرین پیاده‌سازی ساختارهای پایه ثبت نمودند.',
+              timecreated: Math.floor(Date.now() / 1000) - 14400,
+              unread: true,
+            },
+            {
+              id: 2,
+              subject: 'تمدید مهلت ارسال تمرین سری چهارم',
+              text: 'مهلت ارسال تمرین ۴ تا ساعت ۲۳:۵۹ روز شنبه تمدید گردید.',
+              timecreated: Math.floor(Date.now() / 1000) - 86400,
+              unread: false,
+            },
+            {
+              id: 3,
+              subject: 'آزمون آنلاین دوره‌ای میان‌ترم',
+              text: 'کوییز تستی آزمایشی در درس مدارهای منطقی فعال گردید.',
+              timecreated: Math.floor(Date.now() / 1000) - 172800,
+              unread: false,
+            },
+          ]);
+        } else {
+          const res = await getNotifications(session.siteUrl, session.token, siteInfo?.userid || 9999);
+          if (res && Array.isArray(res.notifications)) {
+            setNotifications(res.notifications);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load notifications:', err);
+      } finally {
+        setLoadingNotifications(false);
+      }
+    }
+    loadNotifs();
+  }, [notifySheetOpen, session, siteInfo]);
+
+  const formatNotifTime = (timestamp) => {
+    if (!timestamp) return '';
+    try {
+      const d = new Date(timestamp * 1000);
+      return toFaDigits(
+        d.toLocaleDateString('fa-IR', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      );
+    } catch {
+      return '';
+    }
+  };
 
   return (
     <>
@@ -161,43 +223,77 @@ export default function TopBar({ title, onBack, showBack = false }) {
         </div>
       )}
 
-      {/* شیت اعلان‌ها و مشخصات کاربر */}
+      {/* شیت اعلان‌های رسمی مودل و مشخصات کاربر */}
       {notifySheetOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="sarv-card w-full max-w-sm max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-base-500/30">
             <div className="p-4 border-b border-base-500/20 flex items-center justify-between bg-base-500/10">
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 text-primary" />
-                <h3 className="text-xs font-black text-base-content">اطلاعات کاربری و سامانه</h3>
+                <h3 className="text-xs font-black text-base-content">اعلان‌ها و رویدادهای دانشگاه</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setNotifySheetOpen(false)}
-                className="p-1 rounded-lg hover:bg-base-500/20 text-neutral"
+                className="p-1 rounded-lg hover:bg-base-500/20 text-neutral cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-4 space-y-3.5 text-xs">
+            <div className="p-4 space-y-3 overflow-y-auto flex-1 text-xs">
               <div className="p-3 rounded-xl bg-primary-soft border border-primary-soft space-y-1">
                 <div className="flex items-center gap-2 text-primary font-bold">
                   <GraduationCap className="w-4 h-4" />
-                  <span>{cleanPersianText(siteInfo?.sitename || 'سامانه مودل')}</span>
+                  <span className="truncate">{cleanPersianText(siteInfo?.sitename || 'سامانه آموزش الکترونیکی')}</span>
                 </div>
                 <p className="text-[11px] text-neutral">
                   دانشجو: <span className="font-bold text-base-content">{cleanPersianText(siteInfo?.fullname)}</span>
                 </p>
                 <p className="text-[10px] text-neutral font-mono">
-                  شماره دانشجویی / نام کاربری: {toFaDigits(siteInfo?.username)}
+                  شماره دانشجویی: {toFaDigits(siteInfo?.username)}
                 </p>
               </div>
 
-              <div className="p-3 rounded-xl bg-base-500/15 border border-base-500/25 space-y-2 text-[11px] text-neutral leading-relaxed">
-                <span className="font-bold text-base-content block">همگام با اکوسیستم سروستان:</span>
-                <p>
-                  مهستان به‌صورت بومی به تقویم، وظایف و پلنر هوشمند سروستان متصل است. تکالیف بارگیری‌شده را می‌توانید با یک کلیک به تسک‌های روزانه تبدیل فرمایید.
-                </p>
+              {/* لیست اعلان‌ها */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-base-content text-[11px]">پیام‌ها و اطلاعیه‌های اخیر:</span>
+                  <span className="text-[10px] text-neutral">{toFaDigits(notifications.length)} مورد</span>
+                </div>
+
+                {loadingNotifications ? (
+                  <div className="flex items-center justify-center py-6 text-neutral gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    <span>در حال دریافت اعلان‌ها...</span>
+                  </div>
+                ) : notifications.length > 0 ? (
+                  notifications.map((n) => (
+                    <div
+                      key={n.id}
+                      className="p-3 rounded-xl bg-base-500/15 border border-base-500/25 space-y-1.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="font-bold text-base-content text-[11px] leading-relaxed">
+                          {cleanPersianText(n.subject)}
+                        </h4>
+                        {n.unread && (
+                          <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1"></span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-neutral leading-relaxed">
+                        {cleanPersianText(n.text)}
+                      </p>
+                      <span className="text-[9px] text-neutral/70 block">
+                        {formatNotifTime(n.timecreated)}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-4 rounded-xl bg-base-500/10 text-center text-neutral text-[11px]">
+                    اعلانی برای نمایش وجود ندارد.
+                  </div>
+                )}
               </div>
             </div>
           </div>

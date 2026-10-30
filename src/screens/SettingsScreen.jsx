@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Settings,
   Palette,
@@ -9,16 +9,69 @@ import {
   CheckCircle2,
   Check,
   GraduationCap,
+  FolderLock,
+  Download,
+  Award,
+  HardDrive,
+  FileText,
+  Clock,
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
 import { exportAllAssignmentsToSarvestan } from '../services/sarvestanBridge';
-import { cleanPersianText, toFaDigits } from '../utils/persianUtils';
+import { getPrivateFiles, getUserBadges, getMoodleFileUrl } from '../services/moodle/api';
+import { cleanPersianText, toFaDigits, formatFileSizeFa } from '../utils/persianUtils';
 
 export default function SettingsScreen() {
   const { theme, setTheme, themes } = useTheme();
   const { session, siteInfo, assignments, logout } = useMoodleAuth();
   const [msg, setMsg] = useState('');
+
+  const [privateFiles, setPrivateFiles] = useState([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
+
+  const [badges, setBadges] = useState([]);
+  const [loadingBadges, setLoadingBadges] = useState(false);
+
+  // بارگذاری فایل‌های خصوصی ابری مودل
+  useEffect(() => {
+    async function loadFiles() {
+      if (!session) return;
+      setLoadingFiles(true);
+      try {
+        const res = await getPrivateFiles(session.siteUrl, session.token);
+        if (res && Array.isArray(res.files)) {
+          setPrivateFiles(res.files);
+        }
+      } catch (err) {
+        console.error('Failed to load private files:', err);
+      } finally {
+        setLoadingFiles(false);
+      }
+    }
+    loadFiles();
+  }, [session]);
+
+  // بارگذاری نشان‌های تحصیلی دانشجو
+  useEffect(() => {
+    async function loadBadges() {
+      if (!session) return;
+      setLoadingBadges(true);
+      try {
+        const res = await getUserBadges(session.siteUrl, session.token, siteInfo?.userid || 9999);
+        if (res && Array.isArray(res.badges)) {
+          setBadges(res.badges);
+        }
+      } catch (err) {
+        console.error('Failed to load badges:', err);
+      } finally {
+        setLoadingBadges(false);
+      }
+    }
+    loadBadges();
+  }, [session, siteInfo]);
 
   const handleExportAll = () => {
     exportAllAssignmentsToSarvestan(assignments);
@@ -34,13 +87,16 @@ export default function SettingsScreen() {
   };
 
   return (
-    <div className="p-4 space-y-4 pb-24 max-w-2xl mx-auto text-right">
+    <div className="p-4 space-y-4 pb-28 max-w-2xl mx-auto text-right">
+      {/* سربرگ تنظیمات */}
       <div className="sarv-card p-4 space-y-1 shadow-sm">
         <h2 className="text-sm font-black text-base-content flex items-center gap-2">
           <Settings className="w-4 h-4 text-primary" />
-          <span>تنظیمات مهستان</span>
+          <span>تنظیمات و امکانات تکمیلی مودل</span>
         </h2>
-        <p className="text-xs text-neutral">شخصی‌سازی ظاهر، پالت‌های رنگی و یکپارچگی با اکوسیستم سروستان</p>
+        <p className="text-xs text-neutral">
+          فضای ابری شخصی، دستاوردهای تحصیلی، پالت تم‌های سروستان و مدیریت حافظه
+        </p>
       </div>
 
       {msg && (
@@ -74,6 +130,120 @@ export default function SettingsScreen() {
         </div>
       </div>
 
+      {/* فایل‌های شخصی ابری دانشجو در سرور مودل (Moodle Private Files) */}
+      <div className="sarv-card p-4 space-y-3 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-black text-base-content flex items-center gap-2">
+            <FolderLock className="w-4 h-4 text-amber-500" />
+            <span>فضای ابری فایل‌های شخصی مودل (Private Files)</span>
+          </h3>
+          <span className="text-[10px] text-neutral font-bold">
+            {toFaDigits(privateFiles.length)} فایل ذخیره‌شده
+          </span>
+        </div>
+
+        <p className="text-xs text-neutral leading-relaxed">
+          فایل‌های اختصاصی بارگذاری‌شده در فضای ابری حساب کاربری شما بر روی سرور دانشگاه:
+        </p>
+
+        {loadingFiles ? (
+          <div className="flex items-center justify-center py-6 text-neutral text-xs gap-2">
+            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            <span>در حال دریافت فایل‌های شخصی...</span>
+          </div>
+        ) : privateFiles.length > 0 ? (
+          <div className="space-y-2">
+            {privateFiles.map((file, idx) => {
+              const downloadUrl = getMoodleFileUrl(file.fileurl, session.token);
+              return (
+                <div
+                  key={idx}
+                  className="p-3 rounded-xl bg-base-500/15 border border-base-500/25 flex items-center justify-between text-xs"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <FileText className="w-4 h-4 text-primary shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-bold text-base-content truncate" title={file.filename}>
+                        {cleanPersianText(file.filename)}
+                      </p>
+                      <span className="text-[10px] text-neutral font-mono">
+                        {formatFileSizeFa(file.filesize)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <a
+                    href={downloadUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    download={file.filename}
+                    className="p-2 rounded-lg text-primary hover:bg-primary/10 transition flex items-center gap-1 font-bold shrink-0 mr-2"
+                    title="دانلود فایل"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span className="text-[11px] hidden sm:inline">دریافت</span>
+                  </a>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-4 rounded-xl bg-base-500/10 text-center text-xs text-neutral">
+            فایل شخصی در فضای ابری مودل بارگذاری نشده است.
+          </div>
+        )}
+      </div>
+
+      {/* نشان‌ها و دستاوردهای تحصیلی (Badges) */}
+      <div className="sarv-card p-4 space-y-3 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-black text-base-content flex items-center gap-2">
+            <Award className="w-4 h-4 text-purple-500" />
+            <span>نشان‌ها و دستاوردهای تحصیلی (Badges)</span>
+          </h3>
+          <span className="text-[10px] text-neutral font-bold">
+            {toFaDigits(badges.length)} نشان کسب‌شده
+          </span>
+        </div>
+
+        {loadingBadges ? (
+          <div className="flex items-center justify-center py-6 text-neutral text-xs gap-2">
+            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            <span>در حال دریافت نشان‌ها...</span>
+          </div>
+        ) : badges.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {badges.map((b) => (
+              <div
+                key={b.id}
+                className="p-3 rounded-xl bg-base-500/15 border border-base-500/30 space-y-1.5"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-purple-500/15 text-purple-500 grid place-items-center shrink-0">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-xs font-black text-base-content truncate">
+                    {cleanPersianText(b.name)}
+                  </h4>
+                </div>
+                <p className="text-[11px] text-neutral leading-relaxed line-clamp-2">
+                  {cleanPersianText(b.description)}
+                </p>
+                {b.issuername && (
+                  <span className="text-[9px] text-neutral/70 block">
+                    اعطا شده توسط: {cleanPersianText(b.issuername)}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-4 rounded-xl bg-base-500/10 text-center text-xs text-neutral">
+            هنوز نشانی برای شما در دروس ثبت نشده است.
+          </div>
+        )}
+      </div>
+
       {/* یکپارچگی با سروستان */}
       <div className="sarv-card p-4 space-y-3 shadow-sm">
         <h3 className="text-xs font-black text-base-content flex items-center gap-2">
@@ -99,7 +269,9 @@ export default function SettingsScreen() {
             <Palette className="w-4 h-4 text-primary" />
             <span>پالت تم‌های سروستان (۱۶ تم)</span>
           </h3>
-          <span className="text-[10px] text-neutral font-bold">تم فعال: {themes.find((t) => t.id === theme)?.persianName}</span>
+          <span className="text-[10px] text-neutral font-bold">
+            تم فعال: {themes.find((t) => t.id === theme)?.persianName}
+          </span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">

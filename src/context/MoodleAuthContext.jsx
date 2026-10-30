@@ -4,6 +4,7 @@ import {
   getSiteInfo,
   getUserCourses,
   getAssignments,
+  getCourseQuizzes,
 } from '../services/moodle/api';
 import {
   saveMoodleSession,
@@ -90,11 +91,63 @@ const DEMO_ASSIGNMENTS = [
   },
 ];
 
+const DEMO_QUIZZES = [
+  {
+    id: 301,
+    course: 101,
+    courseName: 'ساختمان داده‌ها و الگوریتم‌ها (گروه ۱)',
+    name: 'کوییز تستی سری سوم: درخت‌های جستجوی دودویی و توازن',
+    intro: '<p>آزمون شامل ۱۰ سوال چهارگزینه‌ای با نمره منفی است. زمان پاسخگویی: ۲۰ دقیقه.</p>',
+    timelimit: 1200,
+    timeopen: nowSec - 7 * 86400,
+    timeclose: nowSec + 2 * 86400,
+    grademethod: 1,
+    grade: 20,
+    sumgrades: 10,
+    attempts: [
+      {
+        id: 901,
+        attempt: 1,
+        state: 'finished',
+        sumgrades: 9.5,
+        timestart: nowSec - 2 * 86400,
+        timefinish: nowSec - 2 * 86400 + 1100,
+        gradeFormatted: '۱۹.۰۰ از ۲۰',
+      },
+    ],
+  },
+  {
+    id: 302,
+    course: 102,
+    courseName: 'مدارهای منطقی و سیستم‌های دیجیتال',
+    name: 'آزمون تستی دوره‌ای میان‌ترم (شبیه‌ساز تستی)',
+    intro: '<p>آزمون آزمایشی برای آمادگی امتحانات با مرور نکات کلیدی فصول ۱ تا ۴.</p>',
+    timelimit: 1800,
+    timeopen: nowSec - 14 * 86400,
+    timeclose: nowSec - 3 * 86400,
+    grademethod: 1,
+    grade: 20,
+    sumgrades: 15,
+    attempts: [
+      {
+        id: 902,
+        attempt: 1,
+        state: 'finished',
+        sumgrades: 13.5,
+        timestart: nowSec - 5 * 86400,
+        timefinish: nowSec - 5 * 86400 + 1750,
+        gradeFormatted: '۱۸.۰۰ از ۲۰',
+      },
+    ],
+  },
+];
+
 export function MoodleAuthProvider({ children }) {
   const [session, setSession] = useState(getMoodleSession);
   const [siteInfo, setSiteInfo] = useState(null);
   const [courses, setCourses] = useState(getCachedCourses);
   const [assignments, setAssignments] = useState(getCachedAssignments);
+  const [quizzes, setQuizzes] = useState(DEMO_QUIZZES);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -191,6 +244,7 @@ export function MoodleAuthProvider({ children }) {
     setSiteInfo(demoInfo);
     setCourses(DEMO_COURSES);
     setAssignments(DEMO_ASSIGNMENTS);
+    setQuizzes(DEMO_QUIZZES);
     saveMoodleSession(demoSession);
     cacheCourses(DEMO_COURSES);
     cacheAssignments(DEMO_ASSIGNMENTS);
@@ -203,6 +257,7 @@ export function MoodleAuthProvider({ children }) {
     setSiteInfo(null);
     setCourses([]);
     setAssignments([]);
+    setQuizzes([]);
     clearMoodleSession();
   };
 
@@ -252,6 +307,7 @@ export function MoodleAuthProvider({ children }) {
         siteInfo,
         courses,
         assignments,
+        quizzes,
         loading,
         error,
         isAuthenticated,

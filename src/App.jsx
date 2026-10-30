@@ -9,9 +9,10 @@ import CourseDetailScreen from './screens/CourseDetailScreen';
 import AssignmentsScreen from './screens/AssignmentsScreen';
 import CalendarScreen from './screens/CalendarScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import MessagesScreen from './screens/MessagesScreen';
 import { cleanCourseName } from './utils/persianUtils';
 
-const TABS_ORDER = ['courses', 'assignments', 'calendar', 'settings'];
+const TABS_ORDER = ['courses', 'assignments', 'messages', 'calendar', 'settings'];
 
 const pageVariants = {
   enter: (direction) => ({
@@ -104,6 +105,8 @@ export default function App() {
             />
           ) : activeTab === 'assignments' ? (
             <AssignmentsScreen />
+          ) : activeTab === 'messages' ? (
+            <MessagesScreen />
           ) : activeTab === 'calendar' ? (
             <CalendarScreen />
           ) : (

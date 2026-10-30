@@ -1,11 +1,12 @@
 import React from 'react';
-import { BookOpen, CheckSquare, Calendar, Settings } from 'lucide-react';
+import { BookOpen, CheckSquare, Calendar, Settings, MessageSquare } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { toFaDigits } from '../utils/persianUtils';
 
 const NAV_ITEMS = [
   { id: 'courses', label: 'دروس', Icon: BookOpen, activeColor: 'text-secondary' },
   { id: 'assignments', label: 'تکالیف', Icon: CheckSquare, activeColor: 'text-primary' },
+  { id: 'messages', label: 'پیام‌ها', Icon: MessageSquare, activeColor: 'text-warning' },
   { id: 'calendar', label: 'تقویم', Icon: Calendar, activeColor: 'text-info' },
   { id: 'settings', label: 'تنظیمات', Icon: Settings, activeColor: 'text-accent' },
 ];
@@ -32,9 +33,9 @@ export default function BottomNav({ activeTab, onChangeTab, assignmentBadgeCount
         }}
       />
 
-      <div className="relative mx-auto max-w-[420px] px-3 pb-2.5 pt-0 pointer-events-auto">
+      <div className="relative mx-auto max-w-[440px] px-2.5 pb-2.5 pt-0 pointer-events-auto">
         <LayoutGroup id="mehestanBottomNav">
-          <div className="relative rounded-[22px] bg-base/95 backdrop-blur-md border border-base-500/70 shadow-[0_8px_20px_-4px_rgba(0,0,0,0.35)] px-2 py-1 grid grid-cols-4 gap-1 items-center">
+          <div className="relative rounded-[22px] bg-base/95 backdrop-blur-md border border-base-500/70 shadow-[0_8px_20px_-4px_rgba(0,0,0,0.35)] px-1.5 py-1 grid grid-cols-5 gap-1 items-center">
             {NAV_ITEMS.map((item) => {
               const { id, label, Icon, activeColor } = item;
               const isActive = activeTab === id;

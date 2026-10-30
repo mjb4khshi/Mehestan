@@ -16,12 +16,15 @@ import {
   RotateCcw,
   GraduationCap,
   HelpCircle,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
 import { buildMoodleSSOLaunchUrl, parseMoodleSSOResponse } from '../services/moodle/sso';
 import { fetchMoodlePublicConfig } from '../services/moodle/api';
+import { cleanPersianText, toFaDigits } from '../utils/persianUtils';
 
 const DEFAULT_LMS_URL = 'https://vc.kntu.ac.ir/';
 
@@ -37,8 +40,9 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState('');
 
-  // وضعیت لاگین مرکزی و دریافت خودکار توکن
+  // حالت‌های درگاه ورود مرکزی (SSO) و کلید دسترسی
   const [waitingForSSO, setWaitingForSSO] = useState(false);
+  const [showSSOSection, setShowSSOSection] = useState(false);
   const [manualTokenInput, setManualTokenInput] = useState('');
   const [activeLaunchUrl, setActiveLaunchUrl] = useState('');
   const [showAdvancedToken, setShowAdvancedToken] = useState(false);
@@ -67,7 +71,6 @@ export default function LoginScreen() {
         if (isMounted) {
           setSiteConfig(null);
           setSiteChecking(false);
-          // در صورت بروز خطا در استعلام، خطا را ملایم نشان داده و فرم دستی را باز می‌گذاریم
           setSiteError('امکان دریافت خودکار مشخصات سامانه وجود نداشت؛ می‌توانید از فرم مستقیم یا ورود SSO استفاده نمایید.');
         }
       }
@@ -79,8 +82,29 @@ export default function LoginScreen() {
     };
   }, [cleanUrl]);
 
-  // شروع فرآیند احراز هویت برای یک Identity Provider خاص یا کل سیستم دانشگاه
-  const handleLaunchSSO = async (oauthssoId = null) => {
+  // ورود مستقیم با شماره دانشجویی و رمز داخل خود اپلیکیشن
+  const handleDirectLogin = async (e) => {
+    e.preventDefault();
+    setLocalError('');
+
+    if (!cleanUrl) {
+      setLocalError('لطفاً آدرس سامانه مودل را وارد فرمایید.');
+      return;
+    }
+    if (!username.trim() || !password.trim()) {
+      setLocalError('لطفاً شماره دانشجویی و رمز عبور را وارد فرمایید.');
+      return;
+    }
+
+    try {
+      await login(siteConfig?.siteUrl || cleanUrl, username, password);
+    } catch (err) {
+      setLocalError(err.message || 'خطا در ورود به سامانه مودل');
+    }
+  };
+
+  // شروع فرآیند احراز هویت برای SSO
+  const handleLaunchSSO = async () => {
     setLocalError('');
     if (!cleanUrl) {
       setLocalError('لطفاً آدرس سامانه مودل دانشگاه را وارد نمایید.');
@@ -92,7 +116,6 @@ export default function LoginScreen() {
       const { launchUrl } = buildMoodleSSOLaunchUrl(targetUrl, {
         service: 'moodle_mobile_app',
         urlScheme: 'moodlemobile',
-        oauthsso: oauthssoId !== null ? oauthssoId : (cleanUrl.includes('kntu') ? 1 : null),
         confirmed: 1,
       });
 
@@ -142,30 +165,6 @@ export default function LoginScreen() {
       // عدم دسترسی به کلیپ‌بورد
     }
   };
-
-  // ورود مستقیم با نام کاربری و رمز در داخل اپلیکیشن
-  const handleDirectLogin = async (e) => {
-    e.preventDefault();
-    setLocalError('');
-
-    if (!cleanUrl) {
-      setLocalError('لطفاً آدرس سامانه مودل را وارد فرمایید.');
-      return;
-    }
-    if (!username.trim() || !password.trim()) {
-      setLocalError('لطفاً شماره دانشجویی و رمز عبور را وارد فرمایید.');
-      return;
-    }
-
-    try {
-      await login(siteConfig?.siteUrl || cleanUrl, username, password);
-    } catch (err) {
-      setLocalError(err.message || 'خطا در ورود به سامانه مودل');
-    }
-  };
-
-  const hasIdentityProviders = siteConfig?.identityProviders && siteConfig.identityProviders.length > 0;
-  const isKntuDefault = cleanUrl.includes('kntu');
 
   return (
     <div className="min-h-screen bg-base text-base-content flex items-center justify-center p-4 relative overflow-hidden">
@@ -236,7 +235,7 @@ export default function LoginScreen() {
               <GraduationCap className="w-4 h-4 text-primary shrink-0 mt-0.5" />
               <div className="space-y-0.5 min-w-0 flex-1">
                 <p className="text-xs font-black text-base-content truncate" title={siteConfig.siteName}>
-                  {siteConfig.siteName}
+                  {cleanPersianText(siteConfig.siteName)}
                 </p>
                 <div className="flex items-center gap-2 text-[10px] text-neutral">
                   <span className="flex items-center gap-1 text-success font-bold">
@@ -244,7 +243,7 @@ export default function LoginScreen() {
                     وب‌سرویس همراه فعال است
                   </span>
                   <span>•</span>
-                  <span>نسخه اختصاصی</span>
+                  <span>اتصال مستقیم وب‌سرویس</span>
                 </div>
               </div>
             </div>
@@ -257,118 +256,7 @@ export default function LoginScreen() {
             </div>
           )}
 
-          {/* بخش اول: درگاه‌های ورود مرکزی و احراز هویت یکپارچه (SSO) */}
-          <div className="space-y-2.5">
-            {hasIdentityProviders ? (
-              /* رندر ارائه‌دهندگان هویت اختصاصی دانشگاه (مانند حساب دانشگاهی خواجه نصیر) */
-              siteConfig.identityProviders.map((provider) => (
-                <button
-                  key={provider.name}
-                  type="button"
-                  onClick={() => handleLaunchSSO(provider.id)}
-                  disabled={loading}
-                  className="w-full py-3.5 px-4 rounded-xl bg-primary text-primary-content text-xs font-black hover:brightness-110 active:scale-[0.98] transition-all shadow-md flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
-                >
-                  {provider.iconUrl ? (
-                    <img src={provider.iconUrl} alt="" className="w-4 h-4 rounded-sm object-contain" />
-                  ) : (
-                    <KeyRound className="w-4 h-4 shrink-0" />
-                  )}
-                  <span>ورود با {provider.name}</span>
-                  <ExternalLink className="w-3.5 h-3.5 opacity-70 mr-auto" />
-                </button>
-              ))
-            ) : isKntuDefault ? (
-              /* دکمه اختصاصی خواجه نصیر حتی پیش از پایان بارگذاری کانفیگ */
-              <button
-                type="button"
-                onClick={() => handleLaunchSSO(1)}
-                disabled={loading}
-                className="w-full py-3.5 px-4 rounded-xl bg-primary text-primary-content text-xs font-black hover:brightness-110 active:scale-[0.98] transition-all shadow-md flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
-              >
-                <KeyRound className="w-4 h-4 shrink-0" />
-                <span>ورود با حساب دانشگاهی (SSO مرکزی)</span>
-                <ExternalLink className="w-3.5 h-3.5 opacity-70 mr-auto" />
-              </button>
-            ) : siteConfig?.typeOfLogin === 1 ? (
-              /* سامانه دارای SSO عمومی بدون ارائه‌دهنده نام‌دار */
-              <button
-                type="button"
-                onClick={() => handleLaunchSSO(null)}
-                disabled={loading}
-                className="w-full py-3.5 px-4 rounded-xl bg-primary text-primary-content text-xs font-black hover:brightness-110 active:scale-[0.98] transition-all shadow-md flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
-              >
-                <ShieldCheck className="w-4 h-4 shrink-0" />
-                <span>ورود از طریق درگاه دانشگاه (SSO)</span>
-                <ExternalLink className="w-3.5 h-3.5 opacity-70 mr-auto" />
-              </button>
-            ) : null}
-
-            {/* پنل بازخورد ورود SSO در نسخه وب / راهنما */}
-            {waitingForSSO && (
-              <div className="p-3.5 rounded-xl bg-base-500/15 border border-base-500/30 space-y-3">
-                <div className="flex items-center gap-2 text-warning text-xs font-bold">
-                  <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-                  <span>درگاه دانشگاه در مرورگر باز شد</span>
-                </div>
-                {activeLaunchUrl && (
-                  <div className="flex items-center justify-between text-[10px] text-neutral bg-base-500/20 px-2.5 py-1.5 rounded-lg font-mono">
-                    <span className="truncate max-w-[220px]" dir="ltr">{activeLaunchUrl}</span>
-                    <a
-                      href={activeLaunchUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-primary hover:underline font-sans font-bold shrink-0 mr-2"
-                    >
-                      باز کردن مجدد
-                    </a>
-                  </div>
-                )}
-                <p className="text-[11px] text-neutral leading-relaxed">
-                  در اپلیکیشن اندروید پس از ورود در دانشگاه به‌صورت خودکار وارد می‌شوید. در رایانه، مرورگر شما صفحه تاییدیه را نمایش می‌دهد؛ لینک «برای راه‌اندازی برنامه اینجا کلیک کنید» را کپی و در کادر زیر قرار دهید:
-                </p>
-
-                <form onSubmit={handleManualTokenSubmit} className="space-y-2">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={manualTokenInput}
-                      onChange={(e) => setManualTokenInput(e.target.value)}
-                      placeholder="جای‌گذاری پیوند moodlemobile://token=... یا کلید ۳۲ حرفی"
-                      dir="ltr"
-                      className="w-full px-3 py-2 pl-9 rounded-lg bg-base-500/20 border border-base-500/40 text-[11px] font-mono text-left focus:outline-none focus:border-primary transition"
-                    />
-                    <button
-                      type="button"
-                      onClick={handlePasteFromClipboard}
-                      title="پیست از کلیپ‌بورد"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral hover:text-base-content transition cursor-pointer"
-                    >
-                      <ClipboardPaste className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={!manualTokenInput.trim() || loading}
-                    className="w-full py-2 rounded-lg bg-base-500/30 hover:bg-base-500/50 text-xs font-bold text-base-content transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                    <span>تایید و ورود به مهستان</span>
-                  </button>
-                </form>
-              </div>
-            )}
-          </div>
-
-          {/* جداکننده ظریف */}
-          <div className="relative flex py-1 items-center">
-            <div className="flex-grow border-t border-base-500/30"></div>
-            <span className="flex-shrink mx-3 text-[11px] text-neutral font-bold">یا ورود با نام کاربری و رمز مودل</span>
-            <div className="flex-grow border-t border-base-500/30"></div>
-          </div>
-
-          {/* بخش دوم: فرم نام کاربری و رمز دستی داخل اپلیکیشن */}
+          {/* فرم مستقیم ورود با شماره دانشجویی و رمز (پیش‌فرض مانند اپ مودل) */}
           <form onSubmit={handleDirectLogin} className="space-y-3.5">
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-neutral flex items-center gap-1.5">
@@ -426,17 +314,17 @@ export default function LoginScreen() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-4 rounded-xl bg-base-500/30 hover:bg-base-500/50 border border-base-500/40 text-xs font-black text-base-content transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full py-3.5 px-4 rounded-xl bg-primary text-primary-content text-xs font-black hover:brightness-110 active:scale-[0.98] transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>در حال اعتبارسنجی...</span>
+                  <span>در حال اعتبارسنجی و ورود...</span>
                 </>
               ) : (
                 <>
-                  <Lock className="w-3.5 h-3.5 text-primary" />
-                  <span>ورود مستقیم به سامانه</span>
+                  <Lock className="w-4 h-4" />
+                  <span>ورود به مهستان</span>
                 </>
               )}
             </button>
@@ -450,21 +338,103 @@ export default function LoginScreen() {
             </div>
           )}
 
-          {/* بخش دسترسی سریع به کلیدهای کاربری (managetoken.php) */}
-          <div className="pt-1 text-center">
+          {/* جداکننده روش‌های دیگر */}
+          <div className="relative flex py-1 items-center">
+            <div className="flex-grow border-t border-base-500/30"></div>
+            <span className="flex-shrink mx-3 text-[11px] text-neutral font-bold">یا روش‌های دیگر احراز هویت</span>
+            <div className="flex-grow border-t border-base-500/30"></div>
+          </div>
+
+          {/* بخش ورود با درگاه مرکزی دانشگاه (SSO) */}
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => setShowSSOSection(!showSSOSection)}
+              className="w-full py-2.5 px-3 rounded-xl bg-base-500/20 hover:bg-base-500/35 border border-base-500/40 text-xs font-bold text-base-content transition flex items-center justify-between cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-primary" />
+                <span>ورود از طریق درگاه دانشگاه (حساب یکپارچه SSO)</span>
+              </div>
+              {showSSOSection ? <ChevronUp className="w-4 h-4 text-neutral" /> : <ChevronDown className="w-4 h-4 text-neutral" />}
+            </button>
+
+            {showSSOSection && (
+              <div className="p-3.5 rounded-xl bg-base-500/15 border border-base-500/30 space-y-3">
+                <p className="text-[11px] text-neutral leading-relaxed">
+                  اگر دانشگاه شما از ورود با احراز هویت مرکزی (مانند درگاه یکپارچه خواجه نصیر) استفاده می‌کند، می‌توانید از دکمه زیر جهت اتصال استفاده فرمایید:
+                </p>
+
+                <button
+                  type="button"
+                  onClick={handleLaunchSSO}
+                  disabled={loading}
+                  className="w-full py-2.5 px-4 rounded-lg bg-base-500/30 hover:bg-base-500/50 text-xs font-bold text-base-content transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <KeyRound className="w-3.5 h-3.5 text-primary" />
+                  <span>باز کردن درگاه احراز هویت مرکزی در مرورگر</span>
+                  <ExternalLink className="w-3 h-3 opacity-60 mr-auto" />
+                </button>
+
+                {waitingForSSO && (
+                  <div className="space-y-2 pt-1 border-t border-base-500/30">
+                    <div className="flex items-center gap-2 text-warning text-xs font-bold">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                      <span>در انتظار تایید در مرورگر...</span>
+                    </div>
+                    <p className="text-[10px] text-neutral">
+                      در اپلیکیشن اندروید بازگشت به‌صورت خودکار انجام می‌شود. در رایانه می‌توانید پیوند تاییدیه یا کلید توکن را در کادر زیر قرار دهید:
+                    </p>
+                    <form onSubmit={handleManualTokenSubmit} className="space-y-2">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={manualTokenInput}
+                          onChange={(e) => setManualTokenInput(e.target.value)}
+                          placeholder="جای‌گذاری پیوند moodlemobile://token=... یا کلید ۳۲ حرفی"
+                          dir="ltr"
+                          className="w-full px-3 py-2 pl-9 rounded-lg bg-base-500/20 border border-base-500/40 text-[11px] font-mono text-left focus:outline-none focus:border-primary transition"
+                        />
+                        <button
+                          type="button"
+                          onClick={handlePasteFromClipboard}
+                          title="پیست از کلیپ‌بورد"
+                          className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral hover:text-base-content transition cursor-pointer"
+                        >
+                          <ClipboardPaste className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={!manualTokenInput.trim() || loading}
+                        className="w-full py-2 rounded-lg bg-primary text-primary-content text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>تایید و ورود با توکن</span>
+                      </button>
+                    </form>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* بخش دریافت مستقیم کلید از managetoken.php */}
+          <div className="text-center">
             <button
               type="button"
               onClick={() => setShowAdvancedToken(!showAdvancedToken)}
               className="text-[11px] text-neutral/80 hover:text-primary transition flex items-center justify-center gap-1 mx-auto cursor-pointer font-bold"
             >
               <HelpCircle className="w-3 h-3" />
-              <span>{showAdvancedToken ? 'بستن راهنمای پیشرفته توکن' : 'دریافت مستقیم کلید وب‌سرویس از حساب مودل'}</span>
+              <span>{showAdvancedToken ? 'بستن راهنمای توکن' : 'راهنمای دریافت مستقیم کلید وب‌سرویس'}</span>
             </button>
 
             {showAdvancedToken && (
               <div className="mt-2.5 p-3 rounded-xl bg-base-500/15 border border-base-500/30 text-right space-y-2 text-[11px] text-neutral leading-relaxed">
                 <p>
-                  اگر هم‌اکنون در این مرورگر وارد سامانه مودل شده‌اید، می‌توانید مستقیماً به صفحه کلیدهای امنیتی خود بروید:
+                  در صورت تمایل می‌توانید با ورود به صفحه کلیدهای امنیتی حساب خود در مودل، کلید وب‌سرویس را مستقیماً بردارید:
                 </p>
                 <a
                   href={`${siteConfig?.siteUrl || cleanUrl}/user/managetoken.php`}
@@ -473,11 +443,8 @@ export default function LoginScreen() {
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary border border-primary/25 font-bold hover:bg-primary/20 transition"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
-                  <span>باز کردن صفحه کلیدهای من (managetoken.php)</span>
+                  <span>صفحه کلیدهای امنیتی (managetoken.php)</span>
                 </a>
-                <p className="text-[10px] text-neutral/70">
-                  توکن ۳۲ حرفی ستون Moodle mobile web service را کپی کرده و در کادر بالا تایید نمایید.
-                </p>
               </div>
             )}
           </div>

@@ -14,9 +14,9 @@ export function buildMoodleSSOLaunchUrl(siteUrl, options = {}) {
   // سامانه مودل به‌صورت پیش‌فرض پروتکل moodlemobile را در تنظیمات tool_mobile مجاز می‌داند
   const urlScheme = options.urlScheme || 'moodlemobile';
   const passport = options.passport ?? Math.random() * 1000;
-  // برای خواجه نصیر و سامانه‌های SSO، پارامتر oauthsso=1 هدایت مستقیم به ورود مرکزی دانشگاه را آغاز می‌کند
-  const oauthsso = options.oauthsso !== undefined ? options.oauthsso : (cleanSiteUrl.includes('kntu') ? 1 : null);
-  // ارسال confirmed=1 مانع از ریدایرکت خالی و صفحه سیاه در مرورگرهای دسکتاپ می‌شود
+  // توجه: در مودل، ارسال مقدار نادرست oauthsso بدون نشست معتبر باعث خطای 404 نشست منقضی می‌شود
+  const oauthsso = options.oauthsso || null;
+  // ارسال confirmed=1 مانع از ریدایرکت خالی در مرورگر می‌شود
   const confirmed = options.confirmed !== undefined ? options.confirmed : 1;
 
   let query = '';
