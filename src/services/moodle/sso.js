@@ -31,7 +31,7 @@ export function buildMoodleSSOLaunchUrl(siteUrl, options = {}) {
     passport,
     service,
     urlScheme,
-    oauthsso,
+    oauthsso: options.oauthsso || null,
     createdAt: Date.now(),
   };
 
