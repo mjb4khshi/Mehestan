@@ -97,105 +97,137 @@ export function parseMoodleSSOResponse(rawInput, expectedSiteUrl = null) {
     throw new Error('رشته توکن یا لینک بازگشتی نامعتبر است.');
   }
 
-  const trimmed = rawInput.trim();
+  let str = rawInput.trim();
 
-  // ۱. بررسی اینکه آیا مستقیماً توکن ۳۲ کاراکتری هگزادسیمال وب‌سرویس است
-  if (/^[a-f0-9]{32}$/i.test(trimmed)) {
+  // ۱. بررسی اشتباه رایج: کاربر آدرس صفحه شروع (launch.php) را پیست کرده باشد
+  if (str.includes('/launch.php')) {
+    throw new Error(
+      'این آدرس صفحه شروع لاگین است، نه توکن نهایی. لطفاً ابتدا در صفحه بازشده با شماره دانشجویی و رمز دانشگاه لاگین کنید. پس از ورود، لینکی که با //:moodlemobile آغاز می‌شود یا توکن ۳۲ حرفی مودل را در این کادر قرار دهید.'
+    );
+  }
+
+  // ۲. دیکود اولیه کاراکترهای URL Encoded
+  try {
+    str = decodeURIComponent(str);
+  } catch (e) {
+    // Ignore
+  }
+
+  // ۳. بررسی مستقیم توکن ۳۲ حرفی هگزادسیمال وب‌سرویس
+  if (/^[a-f0-9]{32}$/i.test(str)) {
     return {
       success: true,
-      token: trimmed,
+      token: str,
       privateToken: null,
       isSSO: false,
     };
   }
 
-  // ۲. استخراج بخش Base64 از URL یا Schema
-  let payloadStr = trimmed;
-
-  if (payloadStr.includes('token=')) {
-    payloadStr = payloadStr.split('token=')[1] || '';
+  // ۴. استخراج مقدار توکن در صورت وجود در URL
+  let candidate = str;
+  if (candidate.includes('token=')) {
+    candidate = candidate.split('token=')[1] || '';
+    candidate = candidate.split('&')[0];
+    candidate = candidate.split('#')[0];
   }
 
-  // حذف اسلش یا کاراکترهای اضافه انتهای لینک
-  payloadStr = payloadStr.replace(/\/?#?\/?$/, '');
+  // حذف اسلش یا کاراکترهای نامعتبر انتهای مقدار
+  candidate = candidate.replace(/[\/#?]+$/, '').trim();
 
-  if (!payloadStr) {
-    throw new Error('محتوای توکن در ورودی یافت نشد.');
+  if (/^[a-f0-9]{32}$/i.test(candidate)) {
+    return {
+      success: true,
+      token: candidate,
+      privateToken: null,
+      isSSO: false,
+    };
   }
 
-  // ۳. دیکود Base64 بر اساس سورس Moodle Mobile (atob)
+  // ۵. آماده‌سازی برای دیکود Base64 و تبدیل Base64URL
+  let b64 = candidate.replace(/-/g, '+').replace(/_/g, '/');
+  while (b64.length % 4) {
+    b64 += '=';
+  }
+
   let decodedText = '';
   try {
-    decodedText = atob(payloadStr);
+    decodedText = atob(b64);
   } catch (e) {
-    // اگر نتوانست Base64 دیکود کند و ۳۲ حرفی بود
-    if (/^[a-f0-9]{32}$/i.test(payloadStr)) {
+    // اگر دیکود Base64 با خطا مواجه شد، جستجوی هرگونه توکن ۳۲ حرفی موجود در ورودی
+    const hexMatch = rawInput.match(/[a-f0-9]{32}/i);
+    if (hexMatch) {
       return {
         success: true,
-        token: payloadStr,
-        privateToken: null,
-        isSSO: false,
-      };
-    }
-    throw new Error('قالب داده بازگشتی از مودل معتبر نیست (خطا در دیکود Base64).');
-  }
-
-  // ۴. تفکیک فرمت رسمی مودل: signature:::token:::privateToken
-  const parts = decodedText.split(':::');
-  if (parts.length < 2) {
-    // اگر فرمت متفاوتی بود ولی بخش اول یا دوم توکن ۳۲ حرفی است
-    const match = decodedText.match(/[a-f0-9]{32}/i);
-    if (match) {
-      return {
-        success: true,
-        token: match[0],
+        token: hexMatch[0],
         privateToken: null,
         isSSO: true,
       };
     }
-    throw new Error('فرمت داده بازگشتی از مودل مطابقت ندارد.');
+    throw new Error(
+      'قالب توکن یا لینک بازگشتی شناخته نشد. لطفاً لینک کامل moodlemobile://token=... یا توکن ۳۲ حرفی وب‌سرویس مودل را وارد فرمایید.'
+    );
   }
 
-  const receivedSignature = parts[0];
-  const token = parts[1];
-  const privateToken = parts[2] || null;
+  // ۶. تفکیک فرمت رسمی مودل: signature:::token:::privateToken
+  if (decodedText.includes(':::')) {
+    const parts = decodedText.split(':::');
+    const receivedSignature = parts[0];
+    const token = parts[1];
+    const privateToken = parts[2] || null;
 
-  // ۵. اعتبارسنجی امضای امنیتی با passport در صورت موجود بودن
-  const pending = getPendingSSOData();
-  const siteUrlToCheck = expectedSiteUrl || pending?.siteUrl;
-  const passportToCheck = pending?.passport;
+    const pending = getPendingSSOData();
+    const siteUrlToCheck = expectedSiteUrl || pending?.siteUrl;
+    const passportToCheck = pending?.passport;
 
-  let signatureValid = true;
-  if (siteUrlToCheck && passportToCheck !== undefined) {
-    const cleanUrl = siteUrlToCheck.replace(/\/+$/, '');
-    let expectedSig = Md5.hashAsciiStr(cleanUrl + passportToCheck);
+    let signatureValid = true;
+    if (siteUrlToCheck && passportToCheck !== undefined) {
+      const cleanUrl = siteUrlToCheck.replace(/\/+$/, '');
+      let expectedSig = Md5.hashAsciiStr(cleanUrl + passportToCheck);
 
-    if (expectedSig !== receivedSignature) {
-      // آزمایش پروتکل معکوس http/https مشابه کلاینت رسمی مودل
-      const altUrl = cleanUrl.startsWith('https://')
-        ? cleanUrl.replace('https://', 'http://')
-        : cleanUrl.replace('http://', 'https://');
-      expectedSig = Md5.hashAsciiStr(altUrl + passportToCheck);
+      if (expectedSig !== receivedSignature) {
+        const altUrl = cleanUrl.startsWith('https://')
+          ? cleanUrl.replace('https://', 'http://')
+          : cleanUrl.replace('http://', 'https://');
+        expectedSig = Md5.hashAsciiStr(altUrl + passportToCheck);
+      }
+
+      signatureValid = expectedSig === receivedSignature;
     }
 
-    signatureValid = expectedSig === receivedSignature;
-    if (!signatureValid) {
-      console.warn('SSO signature mismatch (expected vs received)', {
-        receivedSignature,
-        expectedSig,
-      });
-    }
+    return {
+      success: true,
+      token,
+      privateToken,
+      signature: receivedSignature,
+      signatureValid,
+      isSSO: true,
+      siteUrl: siteUrlToCheck,
+    };
   }
 
-  return {
-    success: true,
-    token,
-    privateToken,
-    signature: receivedSignature,
-    signatureValid,
-    isSSO: true,
-    siteUrl: siteUrlToCheck,
-  };
+  // ۷. اگر پس از دیکود فرمت ::: نبود، بررسی وجود توکن ۳۲ حرفی در متن دیکود شده
+  const embeddedHex = decodedText.match(/[a-f0-9]{32}/i);
+  if (embeddedHex) {
+    return {
+      success: true,
+      token: embeddedHex[0],
+      privateToken: null,
+      isSSO: true,
+    };
+  }
+
+  // در نهایت اگر توکنی یافت نشد
+  const anyHex = rawInput.match(/[a-f0-9]{32}/i);
+  if (anyHex) {
+    return {
+      success: true,
+      token: anyHex[0],
+      privateToken: null,
+      isSSO: true,
+    };
+  }
+
+  throw new Error('توکن معتبری در ورودی یافت نشد.');
 }
 
 /**

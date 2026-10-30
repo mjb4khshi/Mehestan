@@ -296,6 +296,22 @@ export default function LoginScreen() {
                       <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
                       <span>تایید و ورود با توکن</span>
                     </button>
+
+                    <div className="pt-1.5 text-[10px] text-neutral/80 space-y-1 leading-relaxed">
+                      <p>راهنمای نسخه وب: پس از ورود در سامانه دانشگاه، مرورگر لینکی با پیشوند //:moodlemobile می‌سازد؛ آن لینک را کپی کنید.</p>
+                      <p>
+                        همچنین می‌توانید توکن وب‌سرویس ۳۲ حرفی خود را از مسیر «پروفایل » کلیدهای امنیتی» در سامانه مودل (
+                        <a
+                          href="https://vc.kntu.ac.ir/user/managetoken.php"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-primary hover:underline font-bold"
+                        >
+                          managetoken.php
+                        </a>
+                        ) کپی و مستقیماً اینجا پیست کنید.
+                      </p>
+                    </div>
                   </form>
                 </div>
               )}
