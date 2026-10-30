@@ -100,13 +100,18 @@ export async function loginWithMoodle(baseUrl, username, password, service = 'mo
   const cleanUrl = baseUrl.replace(/\/+$/, '');
   const tokenEndpoint = `${cleanUrl}/login/token.php`;
 
+  const isLocal =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const fetchUrl = isLocal ? `/api/moodle-proxy?url=${encodeURIComponent(tokenEndpoint)}` : tokenEndpoint;
+
   const body = new URLSearchParams({
     username: username.trim(),
     password: password.trim(),
     service: service,
   });
 
-  const res = await fetch(tokenEndpoint, {
+  const res = await fetch(fetchUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -138,6 +143,11 @@ export async function callMoodleWs(baseUrl, token, wsfunction, params = {}) {
   const cleanUrl = baseUrl.replace(/\/+$/, '');
   const serverEndpoint = `${cleanUrl}/webservice/rest/server.php?moodlewsrestformat=json`;
 
+  const isLocal =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const fetchUrl = isLocal ? `/api/moodle-proxy?url=${encodeURIComponent(serverEndpoint)}` : serverEndpoint;
+
   const bodyParams = new URLSearchParams({
     wstoken: token,
     wsfunction: wsfunction,
@@ -163,7 +173,7 @@ export async function callMoodleWs(baseUrl, token, wsfunction, params = {}) {
     appendParam(k, v);
   });
 
-  const res = await fetch(serverEndpoint, {
+  const res = await fetch(fetchUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -182,6 +192,180 @@ export async function callMoodleWs(baseUrl, token, wsfunction, params = {}) {
   }
 
   return result;
+}
+
+/**
+ * تولید پیوند امن و احرازهویت‌شده فایل‌های مودل با الحاق wstoken
+ */
+export function getMoodleFileUrl(fileUrl, token) {
+  if (!fileUrl) return '';
+  if (!token || token.startsWith('demo_')) return fileUrl;
+  const separator = fileUrl.includes('?') ? '&' : '?';
+  return `${fileUrl}${separator}token=${encodeURIComponent(token)}`;
+}
+
+/**
+ * فرمت‌بندی خوانا و استاندارد حجم فایل‌ها
+ */
+export function formatFileSize(bytes) {
+  if (!bytes || bytes === 0) return '0 بایت';
+  const k = 1024;
+  const sizes = ['بایت', 'کیلوبایت', 'مگابایت', 'گیگابایت'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
+/**
+ * آپلود فایل دانشجو در سرور مودل (webservice/upload.php) جهت ارسال تکالیف
+ */
+export async function uploadMoodleFile(baseUrl, token, file, itemId = 0) {
+  if (token === 'demo_token_mehestan_kntu' || token.startsWith('demo_')) {
+    // نمونه شبیه‌سازی‌شده در حالت دمو
+    return {
+      itemid: itemId || Math.floor(Math.random() * 900000) + 100000,
+      filename: file.name || 'assignment_submission.pdf',
+      filepath: '/',
+      filesize: file.size || 102400,
+      url: 'https://vc.kntu.ac.ir/demo/file',
+    };
+  }
+
+  const cleanUrl = baseUrl.replace(/\/+$/, '');
+  const targetUrl = `${cleanUrl}/webservice/upload.php`;
+
+  const formData = new FormData();
+  formData.append('token', token);
+  formData.append('filearea', 'draft');
+  formData.append('itemid', String(itemId || 0));
+  formData.append('file', file);
+
+  const isLocal =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+  const fetchUrl = isLocal
+    ? `/api/moodle-proxy?url=${encodeURIComponent(targetUrl)}`
+    : targetUrl;
+
+  const res = await fetch(fetchUrl, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!res.ok) {
+    throw new Error(`خطای آپلود فایل در مودل (${res.status})`);
+  }
+
+  const data = await res.json();
+  if (data.error || data.errorcode) {
+    throw new Error(data.error || data.message || 'خطا در بارگذاری فایل در سرور مودل');
+  }
+
+  const uploaded = Array.isArray(data) ? data[0] : data;
+  return uploaded;
+}
+
+/**
+ * ذخیره پیش‌نویس یا پاسخ تکلیف در سرور مودل (mod_assign_save_submission)
+ */
+export async function saveAssignmentSubmission(baseUrl, token, assignId, { fileItemId, onlineText } = {}) {
+  if (token === 'demo_token_mehestan_kntu' || token.startsWith('demo_')) {
+    return { success: true, message: 'تکلیف با موفقیت در حالت دمو ذخیره شد.' };
+  }
+
+  const params = {
+    assignmentid: assignId,
+  };
+
+  if (fileItemId) {
+    params['plugindata[files_filemanager]'] = fileItemId;
+  }
+
+  if (onlineText !== undefined && onlineText !== null) {
+    params['plugindata[onlinetext_editor][text]'] = onlineText;
+    params['plugindata[onlinetext_editor][format]'] = 1;
+    params['plugindata[onlinetext_editor][itemid]'] = 0;
+  }
+
+  return await callMoodleWs(baseUrl, token, 'mod_assign_save_submission', params);
+}
+
+/**
+ * تایید و ارسال نهایی تکلیف جهت نمره‌دهی استاد (mod_assign_submit_for_grading)
+ */
+export async function submitAssignmentForGrading(baseUrl, token, assignId) {
+  if (token === 'demo_token_mehestan_kntu' || token.startsWith('demo_')) {
+    return { success: true, message: 'تکلیف با موفقیت جهت نمره‌دهی نهایی شد.' };
+  }
+
+  return await callMoodleWs(baseUrl, token, 'mod_assign_submit_for_grading', {
+    assignmentid: assignId,
+    acceptsubmissionstatement: 1,
+  });
+}
+
+/**
+ * دریافت وضعیت تحویل یک تکلیف برای دانشجو (mod_assign_get_submission_status)
+ */
+export async function getAssignmentSubmissionStatus(baseUrl, token, assignId, userId = null) {
+  if (token === 'demo_token_mehestan_kntu' || token.startsWith('demo_')) {
+    const isSubmitted = assignId === 202;
+    return {
+      lastattempt: {
+        submission: {
+          status: isSubmitted ? 'submitted' : 'new',
+          timemodified: Math.floor(Date.now() / 1000) - 86400,
+          plugins: [
+            {
+              type: 'file',
+              name: 'فایل ارسالی',
+              fileareas: [
+                {
+                  area: 'submission_files',
+                  files: isSubmitted
+                    ? [
+                        {
+                          filename: 'Logic_Lab5_Async_Sync_Counters.pdf',
+                          filesize: 2548200,
+                          fileurl: 'https://vc.kntu.ac.ir/demo/Logic_Lab5.pdf',
+                          mimetype: 'application/pdf',
+                        },
+                      ]
+                    : [],
+                },
+              ],
+            },
+          ],
+        },
+        graded: isSubmitted,
+        feedback: isSubmitted
+          ? {
+              grade: {
+                grade: '19.50',
+                gradefordisplay: '19.50 / 20.00',
+              },
+              plugins: [
+                {
+                  type: 'comments',
+                  name: 'نظر استاد',
+                  editorfields: [
+                    {
+                      text: '<p>گزارش و شبیه‌سازی بسیار کامل و منسجم بود. تحلیل خطاها دقیق است. خسته نباشید.</p>',
+                    },
+                  ],
+                },
+              ],
+            }
+          : null,
+        canedit: !isSubmitted,
+        cansubmit: !isSubmitted,
+      },
+    };
+  }
+
+  const params = { assignid: assignId };
+  if (userId) params.userid = userId;
+  return await callMoodleWs(baseUrl, token, 'mod_assign_get_submission_status', params);
 }
 
 /**
@@ -204,6 +388,103 @@ export async function getUserCourses(baseUrl, token, userId) {
  * دریافت سرفصل‌ها، فایل‌ها، اسلایدها و جلسات درسی یک درس مشخص
  */
 export async function getCourseContents(baseUrl, token, courseId) {
+  if (token === 'demo_token_mehestan_kntu' || token.startsWith('demo_')) {
+    return [
+      {
+        id: 1,
+        name: 'معرفی درس و سرفصل‌ها',
+        summary: '<p>طرح درس، مراجع پیشنهادی و نحوه بارم‌بندی نمرات ترم</p>',
+        modules: [
+          {
+            id: 1001,
+            name: 'طرح درس و تقویم آموزشی نیم‌سال (PDF)',
+            modname: 'resource',
+            contents: [
+              {
+                filename: 'Syllabus_Fall403.pdf',
+                filesize: 1258291,
+                fileurl: 'https://vc.kntu.ac.ir/demo/Syllabus.pdf',
+                mimetype: 'application/pdf',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: 2,
+        name: 'فصل اول: تحلیل الگوریتم‌ها و مرتبه اجرایی',
+        summary: '<p>مفاهیم پیچیدگی زمانی، تحلیل حالت بدترین و نمادهای Big-O</p>',
+        modules: [
+          {
+            id: 1002,
+            name: 'اسلایدهای جلسه ۱ و ۲: تحلیل مجانبی و پیچیدگی',
+            modname: 'resource',
+            contents: [
+              {
+                filename: 'Chapter01_Asymptotic_Analysis.pdf',
+                filesize: 3565158,
+                fileurl: 'https://vc.kntu.ac.ir/demo/Chapter01.pdf',
+                mimetype: 'application/pdf',
+              },
+            ],
+          },
+          {
+            id: 1003,
+            name: 'نمونه کدهای پیاده‌سازی پایتون و بنچمارک',
+            modname: 'resource',
+            contents: [
+              {
+                filename: 'BigO_Benchmark_Codes.zip',
+                filesize: 498176,
+                fileurl: 'https://vc.kntu.ac.ir/demo/Codes.zip',
+                mimetype: 'application/zip',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: 3,
+        name: 'فصل دوم: درخت‌های جستجوی دودویی و خودمتوازن',
+        summary: '<p>ساختار داده درخت، عملیات درج، حذف و تعادل در درخت‌های AVL</p>',
+        modules: [
+          {
+            id: 1004,
+            name: 'جزوه کلاسی درخت‌های AVL و چرخش‌ها (PDF)',
+            modname: 'resource',
+            contents: [
+              {
+                filename: 'AVL_Trees_LectureNotes.pdf',
+                filesize: 4210000,
+                fileurl: 'https://vc.kntu.ac.ir/demo/AVL_Notes.pdf',
+                mimetype: 'application/pdf',
+              },
+            ],
+          },
+          {
+            id: 1005,
+            name: 'تمرین سری چهارم: پیاده‌سازی درخت AVL و هیپ بیشینه',
+            modname: 'assign',
+            instance: 201,
+            url: 'https://vc.kntu.ac.ir/mod/assign/view.php?id=201',
+          },
+        ],
+      },
+      {
+        id: 4,
+        name: 'کلاس‌های آنلاین و جلسات ضبط‌شده',
+        modules: [
+          {
+            id: 1006,
+            name: 'لینک ورود به کلاس برخط دانشگاه (Adobe Connect / BBB)',
+            modname: 'url',
+            url: 'https://vc.kntu.ac.ir/class/ds-4031',
+          },
+        ],
+      },
+    ];
+  }
+
   return await callMoodleWs(baseUrl, token, 'core_course_get_contents', {
     courseid: courseId,
   });

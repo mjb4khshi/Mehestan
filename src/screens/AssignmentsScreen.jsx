@@ -1,12 +1,23 @@
 import React, { useState } from 'react';
-import { CheckSquare, Clock, AlertCircle, Share2, Filter, CheckCircle2 } from 'lucide-react';
+import {
+  CheckSquare,
+  Clock,
+  AlertCircle,
+  Share2,
+  Filter,
+  CheckCircle2,
+  ChevronLeft,
+  Upload,
+} from 'lucide-react';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
 import { exportAssignmentToSarvestan, exportAllAssignmentsToSarvestan } from '../services/sarvestanBridge';
+import AssignmentDetailModal from '../components/AssignmentDetailModal';
 
 export default function AssignmentsScreen() {
   const { assignments } = useMoodleAuth();
   const [filter, setFilter] = useState('pending'); // 'all' | 'pending' | 'past'
   const [exportedMsg, setExportedMsg] = useState('');
+  const [selectedAssignment, setSelectedAssignment] = useState(null);
 
   const nowSec = Math.floor(Date.now() / 1000);
 
@@ -20,7 +31,8 @@ export default function AssignmentsScreen() {
     return true;
   });
 
-  const handleExport = (assignment) => {
+  const handleExport = (e, assignment) => {
+    e.stopPropagation();
     exportAssignmentToSarvestan(assignment, assignment.courseName);
     setExportedMsg(`تکلیف «${assignment.name}» به سروستان منتقل شد.`);
     setTimeout(() => setExportedMsg(''), 3000);
@@ -39,14 +51,16 @@ export default function AssignmentsScreen() {
 
   return (
     <div className="p-4 space-y-4 pb-24 max-w-2xl mx-auto">
-      {/* فیلترها و دکمه انتقال کلی */}
+      {/* فیلترها و دکمه انتقال کلی به سروستان */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-base-500/20 border border-base-500/30 text-xs">
           <button
             type="button"
             onClick={() => setFilter('pending')}
             className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
-              filter === 'pending' ? 'bg-primary text-primary-content shadow-sm' : 'text-neutral hover:text-base-content'
+              filter === 'pending'
+                ? 'bg-primary text-primary-content shadow-sm'
+                : 'text-neutral hover:text-base-content'
             }`}
           >
             در انتظار انجام ({assignments.filter((a) => a.duedate && a.duedate > nowSec).length})
@@ -55,7 +69,9 @@ export default function AssignmentsScreen() {
             type="button"
             onClick={() => setFilter('all')}
             className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
-              filter === 'all' ? 'bg-primary text-primary-content shadow-sm' : 'text-neutral hover:text-base-content'
+              filter === 'all'
+                ? 'bg-primary text-primary-content shadow-sm'
+                : 'text-neutral hover:text-base-content'
             }`}
           >
             همه ({assignments.length})
@@ -64,7 +80,9 @@ export default function AssignmentsScreen() {
             type="button"
             onClick={() => setFilter('past')}
             className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
-              filter === 'past' ? 'bg-primary text-primary-content shadow-sm' : 'text-neutral hover:text-base-content'
+              filter === 'past'
+                ? 'bg-primary text-primary-content shadow-sm'
+                : 'text-neutral hover:text-base-content'
             }`}
           >
             گذشته
@@ -92,7 +110,7 @@ export default function AssignmentsScreen() {
 
       {/* لیست تکالیف */}
       {filteredAssignments.length === 0 ? (
-        <div className="mehestan-card p-12 text-center space-y-2">
+        <div className="sarv-card p-12 text-center space-y-2">
           <CheckSquare className="w-8 h-8 text-neutral/40 mx-auto" />
           <p className="text-xs font-bold text-neutral">تکلیفی در این بخش یافت نشد.</p>
         </div>
@@ -100,24 +118,40 @@ export default function AssignmentsScreen() {
         <div className="space-y-3">
           {filteredAssignments.map((a) => {
             const isDueSoon = a.duedate && a.duedate > nowSec && a.duedate - nowSec < 86400 * 2;
+            const isSubmitted = a.submissionStatus?.status === 'submitted';
+
             return (
               <div
                 key={a.id}
-                className={`mehestan-card p-4 space-y-3 transition ${
+                onClick={() => setSelectedAssignment(a)}
+                className={`sarv-card p-4 space-y-3 transition cursor-pointer hover:border-primary/50 group ${
                   isDueSoon ? 'border-amber-500/50 bg-amber-500/5' : ''
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1 space-y-1">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-base-500/20 text-neutral">
-                      {a.courseName || a.courseShortName}
-                    </span>
-                    <h4 className="text-xs font-black text-base-content leading-relaxed">{a.name}</h4>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-base-500/20 text-neutral">
+                        {a.courseName || a.courseShortName}
+                      </span>
+                      {isSubmitted ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-success/20 text-success">
+                          تحویل داده شده
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-base-500/30 text-neutral">
+                          تحویل داده نشده
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="text-xs font-black text-base-content leading-relaxed group-hover:text-primary transition">
+                      {a.name}
+                    </h4>
                   </div>
 
                   <button
                     type="button"
-                    onClick={() => handleExport(a)}
+                    onClick={(e) => handleExport(e, a)}
                     className="p-2 rounded-xl bg-base-500/20 text-neutral hover:text-emerald-500 hover:bg-emerald-500/15 transition cursor-pointer shrink-0"
                     title="افزودن به برنامه سروستان"
                   >
@@ -127,17 +161,30 @@ export default function AssignmentsScreen() {
 
                 <div className="pt-2 border-t border-base-500/20 flex items-center justify-between text-[11px] text-neutral">
                   <span className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5" />
+                    <Clock className="w-3.5 h-3.5 text-primary" />
                     <span>موعد: {formatDueDate(a.duedate)}</span>
                   </span>
-                  {isDueSoon && (
-                    <span className="text-amber-500 font-bold">مهلت محدود</span>
-                  )}
+
+                  <div className="flex items-center gap-1.5 text-primary font-bold text-[11px]">
+                    <span>مشاهده و ارسال تکلیف</span>
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </div>
                 </div>
               </div>
             );
           })}
         </div>
+      )}
+
+      {/* پنجره تعاملی جزئیات و ارسال تکلیف */}
+      {selectedAssignment && (
+        <AssignmentDetailModal
+          assignment={selectedAssignment}
+          onClose={() => setSelectedAssignment(null)}
+          onSubmitted={() => {
+            // به‌روزرسانی محلی
+          }}
+        />
       )}
     </div>
   );
