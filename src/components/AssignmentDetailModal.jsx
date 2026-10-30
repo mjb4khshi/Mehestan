@@ -15,6 +15,14 @@ import {
   MessageSquare,
   Award,
   ExternalLink,
+  ShieldAlert,
+  Info,
+  Layers,
+  FileCheck,
+  FileArchive,
+  FileCode,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
 import {
@@ -23,9 +31,17 @@ import {
   saveAssignmentSubmission,
   submitAssignmentForGrading,
   getMoodleFileUrl,
-  formatFileSize,
 } from '../services/moodle/api';
 import { exportAssignmentToSarvestan } from '../services/sarvestanBridge';
+import {
+  cleanPersianText,
+  cleanCourseName,
+  toFaDigits,
+  toFaNumber,
+  formatPersianDate,
+  formatAssignmentTiming,
+  formatFileSizeFa,
+} from '../utils/persianUtils';
 
 export default function AssignmentDetailModal({ assignment, onClose, onSubmitted }) {
   const { session } = useMoodleAuth();
@@ -39,11 +55,7 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
   const [selectedFile, setSelectedFile] = useState(null);
   const [onlineText, setOnlineText] = useState('');
 
-  const nowSec = Math.floor(Date.now() / 1000);
-  const isDuePast = assignment.duedate && assignment.duedate < nowSec;
-  const remainingSec = assignment.duedate ? assignment.duedate - nowSec : null;
-
-  // دریافت وضعیت دقیق تحویل تکلیف از مودل
+  // استعلام وضعیت دقیق تحویل و نمره از مودل
   useEffect(() => {
     async function loadStatus() {
       if (!session || !assignment) return;
@@ -83,21 +95,18 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
     try {
       let fileItemId = null;
       if (selectedFile) {
-        // ۱. آپلود فایل در پوشه پیش‌نویس مودل (webservice/upload.php)
         const uploadRes = await uploadMoodleFile(session.siteUrl, session.token, selectedFile);
         fileItemId = uploadRes.itemid;
       }
 
-      // ۲. ذخیره پاسخ تکلیف در مودل (mod_assign_save_submission)
       await saveAssignmentSubmission(session.siteUrl, session.token, assignment.id, {
         fileItemId,
         onlineText: onlineText.trim() ? onlineText.trim() : undefined,
       });
 
-      setActionSuccess('تکلیف با موفقیت در سامانه مودل بارگذاری و ذخیره شد.');
+      setActionSuccess('تکلیف با موفقیت در سامانه مودل بارگذاری و ثبت شد.');
       setSelectedFile(null);
 
-      // به‌روزرسانی مجدد وضعیت تحویل
       const updated = await getAssignmentSubmissionStatus(session.siteUrl, session.token, assignment.id);
       setSubmissionStatus(updated);
 
@@ -111,7 +120,7 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
 
   // ارسال نهایی برای نمره‌دهی (Finalize submission)
   const handleSubmitForGrading = async () => {
-    if (!window.confirm('آیا از ارسال نهایی این تکلیف اطمینان دارید؟ پس از این مرحله ممکن است امکان ویرایش وجود نداشته باشد.')) {
+    if (!window.confirm('آیا از ارسال نهایی این تکلیف اطمینان دارید؟ پس از این مرحله امکان ویرایش فایل‌ها وجود ندارد.')) {
       return;
     }
 
@@ -140,137 +149,207 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
     setTimeout(() => setActionSuccess(''), 3000);
   };
 
-  const formatDueDate = (timestamp) => {
-    if (!timestamp) return 'بدون موعد مشخص';
-    const d = new Date(timestamp * 1000);
-    return d.toLocaleDateString('fa-IR', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const formatRemainingTime = (sec) => {
-    if (sec <= 0) return 'مهلت به پایان رسیده است';
-    const days = Math.floor(sec / 86400);
-    const hours = Math.floor((sec % 86400) / 3600);
-    if (days > 0) return `${days} روز و ${hours} ساعت باقی‌مانده`;
-    const mins = Math.floor((sec % 3600) / 60);
-    return `${hours} ساعت و ${mins} دقیقه باقی‌مانده`;
-  };
-
+  // استخراج تمام جزئیات از ساختار پیچیده مودل
   const lastAttempt = submissionStatus?.lastattempt;
   const currentSubmission = lastAttempt?.submission;
   const isSubmitted = currentSubmission?.status === 'submitted';
   const isDraft = currentSubmission?.status === 'draft';
+  const isGraded = lastAttempt?.graded;
   const gradeInfo = lastAttempt?.feedback?.grade;
   const feedbackPlugins = lastAttempt?.feedback?.plugins || [];
   const instructorComment = feedbackPlugins.find((p) => p.type === 'comments')?.editorfields?.[0]?.text;
+  const feedbackFiles = feedbackPlugins.find((p) => p.type === 'file')?.fileareas?.[0]?.files || [];
 
-  // فایل‌های پیوست‌شده فعلی دانشجو
+  // فایل‌های تحویل داده شده توسط دانشجو
   const submissionPlugins = currentSubmission?.plugins || [];
-  const filePlugin = submissionPlugins.find((p) => p.type === 'file');
-  const existingFiles = filePlugin?.fileareas?.[0]?.files || [];
+  const studentFiles = submissionPlugins.find((p) => p.type === 'file')?.fileareas?.[0]?.files || [];
+
+  // محاسبه وضعیت دقیق زمانی با استفاده از پارسر فارسی
+  const timing = formatAssignmentTiming(
+    assignment.duedate,
+    currentSubmission?.timemodified || (isSubmitted ? currentSubmission?.timecreated : null)
+  );
+
+  // بررسی تنظیمات بارگذاری تعیین‌شده توسط استاد
+  const configs = assignment.configs || [];
+  const maxFiles = configs.find((c) => c.name === 'maxfilesubmissions')?.value || assignment.maxfilesubmissions;
+  const maxSizeBytes = configs.find((c) => c.name === 'maxsubmissionsizebytes')?.value || assignment.maxsubmissionsizebytes;
+  const fileTypes = configs.find((c) => c.name === 'filetypeslist')?.value || assignment.filetypeslist;
+
+  const canEdit = lastAttempt ? lastAttempt.canedit : !isSubmitted;
+  const attemptNum = lastAttempt?.submission?.attemptnumber !== undefined ? lastAttempt.submission.attemptnumber + 1 : 1;
+  const maxAttempts = assignment.maxattempts && assignment.maxattempts > 0 ? assignment.maxattempts : 'نامحدود';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="sarv-card w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-base-500/30">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/65 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="sarv-card w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border border-base-500/40">
         {/* سربرگ پنجره */}
         <div className="p-4 border-b border-base-500/20 flex items-center justify-between gap-3 bg-base-500/10">
           <div className="min-w-0 flex-1">
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/15 text-primary">
-              {assignment.courseName || assignment.courseShortName}
-            </span>
-            <h3 className="text-sm font-black text-base-content truncate mt-1">{assignment.name}</h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/25">
+                {cleanCourseName(assignment.courseName || assignment.courseShortName)}
+              </span>
+              {assignment.cutoffdate && (
+                <span className="text-[10px] text-neutral/80 font-mono">
+                  شناسه: {toFaDigits(assignment.id)}
+                </span>
+              )}
+            </div>
+            <h3 className="text-sm font-black text-base-content truncate mt-1 leading-relaxed">
+              {cleanPersianText(assignment.name)}
+            </h3>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-xl hover:bg-base-500/25 text-neutral hover:text-base-content transition cursor-pointer"
+            className="p-1.5 rounded-xl hover:bg-base-500/25 text-neutral hover:text-base-content transition cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* بدنه اسکرول‌شونده */}
+        {/* بدنه اسکرول‌شونده و حاوی تمام متادیتای مودل */}
         <div className="p-4 overflow-y-auto space-y-4 flex-1 text-xs">
-          {/* کارت وضعیت موعد و تحویل */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-3 rounded-xl bg-base-500/15 border border-base-500/25 space-y-1">
-              <span className="text-[10px] font-bold text-neutral flex items-center gap-1">
-                <Clock className="w-3 h-3 text-primary" />
-                <span>مهلت تحویل:</span>
-              </span>
-              <p className="font-bold text-base-content text-[11px]">{formatDueDate(assignment.duedate)}</p>
-              {remainingSec !== null && (
-                <span className={`text-[10px] font-bold block ${isDuePast ? 'text-error' : 'text-amber-500'}`}>
-                  {formatRemainingTime(remainingSec)}
+          {/* کارت وضعیت زمانی و وضعیت تحویل */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {/* زمان‌بندی و ددلاین */}
+            <div className="p-3.5 rounded-xl bg-base-500/15 border border-base-500/25 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-neutral flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-primary" />
+                  <span>موعد رسمی تحویل:</span>
                 </span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${timing.badgeBg}`}>
+                  {timing.text}
+                </span>
+              </div>
+              <p className="font-black text-base-content text-xs">
+                {formatPersianDate(assignment.duedate)}
+              </p>
+              {assignment.cutoffdate && (
+                <p className="text-[10px] text-neutral flex items-center gap-1 pt-1 border-t border-base-500/15">
+                  <ShieldAlert className="w-3 h-3 text-amber-500" />
+                  <span>مهلت قطعی بسته شدن: {formatPersianDate(assignment.cutoffdate)}</span>
+                </p>
               )}
             </div>
 
-            <div className="p-3 rounded-xl bg-base-500/15 border border-base-500/25 space-y-1">
-              <span className="text-[10px] font-bold text-neutral flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-primary" />
-                <span>وضعیت تحویل:</span>
-              </span>
+            {/* وضعیت تحویل دانشجو */}
+            <div className="p-3.5 rounded-xl bg-base-500/15 border border-base-500/25 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-neutral flex items-center gap-1">
+                  <FileCheck className="w-3.5 h-3.5 text-primary" />
+                  <span>وضعیت ارسال شما:</span>
+                </span>
+                <span className="text-[10px] font-bold text-neutral">
+                  تلاش {toFaDigits(attemptNum)} از {toFaDigits(maxAttempts)}
+                </span>
+              </div>
               <div>
                 {loading ? (
-                  <span className="text-neutral flex items-center gap-1">
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    <span>استعلام...</span>
+                  <span className="text-neutral flex items-center gap-1 text-[11px]">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>استعلام آنلاین وضعیت از مودل...</span>
                   </span>
                 ) : isSubmitted ? (
-                  <span className="px-2 py-0.5 rounded-md bg-success/20 text-success font-black text-[11px]">
-                    ارسال شده برای تصحیح
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="px-2.5 py-0.5 rounded-md bg-success/20 text-success font-black text-[11px] border border-success/30">
+                      تحویل داده شده برای تصحیح
+                    </span>
+                    {canEdit ? (
+                      <span className="text-[10px] text-neutral flex items-center gap-1">
+                        <Unlock className="w-3 h-3" /> ویرایش آزاد
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-neutral flex items-center gap-1">
+                        <Lock className="w-3 h-3" /> قفل شده
+                      </span>
+                    )}
+                  </div>
                 ) : isDraft ? (
-                  <span className="px-2 py-0.5 rounded-md bg-warning/20 text-warning font-black text-[11px]">
-                    پیش‌نویس (ارسال نشده)
+                  <span className="px-2.5 py-0.5 rounded-md bg-warning/20 text-warning font-black text-[11px] border border-warning/30">
+                    پیش‌نویس اولیه (نهایی نشده)
                   </span>
                 ) : (
-                  <span className="px-2 py-0.5 rounded-md bg-base-500/30 text-neutral font-bold text-[11px]">
-                    تحویل داده نشده
+                  <span className="px-2.5 py-0.5 rounded-md bg-base-500/30 text-neutral font-bold text-[11px]">
+                    هیچ پاسخی تحویل داده نشده است
                   </span>
                 )}
               </div>
+              {currentSubmission?.timemodified && (
+                <p className="text-[10px] text-neutral pt-1 border-t border-base-500/15">
+                  زمان ثبت آخرین نسخه: {formatPersianDate(currentSubmission.timemodified)}
+                </p>
+              )}
             </div>
           </div>
 
-          {/* نمره و نظر استاد در صورت ثبت */}
-          {gradeInfo && (
-            <div className="p-3.5 rounded-xl bg-success-soft border border-success/30 space-y-2">
+          {/* بخش نمره و کارنامه و بازخورد استاد */}
+          {(isGraded || gradeInfo) && (
+            <div className="p-3.5 rounded-xl bg-success-soft border border-success/30 space-y-2.5 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black text-success flex items-center gap-1.5">
                   <Award className="w-4 h-4" />
-                  <span>نمره ثبت‌شده: {gradeInfo.gradefordisplay || gradeInfo.grade}</span>
+                  <span>نمره نهایی: {toFaDigits(gradeInfo?.gradefordisplay || gradeInfo?.grade || 'ثبت شده')}</span>
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-success/20 text-success font-bold text-[10px]">
+                  تصحیح شده
                 </span>
               </div>
+
               {instructorComment && (
                 <div className="pt-2 border-t border-success/20 text-[11px] text-base-content space-y-1">
                   <span className="font-bold text-neutral flex items-center gap-1">
                     <MessageSquare className="w-3 h-3" />
-                    <span>نظر و بازخورد استاد:</span>
+                    <span>نظر و تحلیل استاد:</span>
                   </span>
                   <div
-                    className="leading-relaxed bg-base-500/20 p-2 rounded-lg"
-                    dangerouslySetInnerHTML={{ __html: instructorComment }}
+                    className="leading-relaxed bg-base-500/20 p-2.5 rounded-lg border border-base-500/30"
+                    dangerouslySetInnerHTML={{ __html: cleanPersianText(instructorComment) }}
                   />
+                </div>
+              )}
+
+              {/* فایل‌های بازخورد یا برگه تصحیح‌شده استاد */}
+              {feedbackFiles.length > 0 && (
+                <div className="pt-2 border-t border-success/20 space-y-1.5">
+                  <span className="font-bold text-neutral text-[11px] block">فایل تصحیح‌شده / پاسخنامه ضمیمه استاد:</span>
+                  <div className="space-y-1">
+                    {feedbackFiles.map((f, idx) => (
+                      <a
+                        key={idx}
+                        href={getMoodleFileUrl(f.fileurl, session.token)}
+                        target="_blank"
+                        rel="noreferrer"
+                        download
+                        className="p-2 rounded-lg bg-base-500/20 hover:bg-base-500/30 text-success font-bold flex items-center justify-between transition text-[11px]"
+                      >
+                        <div className="flex items-center gap-1.5 truncate">
+                          <FileText className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">{cleanPersianText(f.filename)}</span>
+                        </div>
+                        <span className="text-[10px] text-neutral shrink-0 mr-2 flex items-center gap-1">
+                          {formatFileSizeFa(f.filesize)} <Download className="w-3 h-3 text-success" />
+                        </span>
+                      </a>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* شرح و سوال تکلیف */}
+          {/* صورت تکلیف و سوالات مطرح‌شده */}
           {assignment.intro && (
             <div className="space-y-1.5">
-              <h4 className="font-bold text-neutral text-[11px]">صورت تکلیف و توضیحات استاد:</h4>
+              <h4 className="font-bold text-neutral text-[11px] flex items-center gap-1">
+                <Info className="w-3.5 h-3.5 text-primary" />
+                <span>دستورالعمل و متن صورت تکلیف:</span>
+              </h4>
               <div
                 className="p-3.5 rounded-xl bg-base-500/15 border border-base-500/25 leading-relaxed text-base-content space-y-2 prose prose-sm max-w-none text-xs"
-                dangerouslySetInnerHTML={{ __html: assignment.intro }}
+                dangerouslySetInnerHTML={{ __html: cleanPersianText(assignment.intro) }}
               />
             </div>
           )}
@@ -278,7 +357,7 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
           {/* فایل‌های صورت سوال ضمیمه‌شده توسط استاد */}
           {assignment.introattachments && assignment.introattachments.length > 0 && (
             <div className="space-y-1.5">
-              <h4 className="font-bold text-neutral text-[11px]">فایل‌های ضمیمه صورت سوال:</h4>
+              <h4 className="font-bold text-neutral text-[11px]">فایل‌های ضمیمه صورت سوال (استاد):</h4>
               <div className="space-y-1.5">
                 {assignment.introattachments.map((file, idx) => (
                   <a
@@ -291,10 +370,10 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
                   >
                     <div className="flex items-center gap-2 truncate">
                       <FileText className="w-4 h-4 shrink-0" />
-                      <span className="truncate">{file.filename}</span>
+                      <span className="truncate">{cleanPersianText(file.filename)}</span>
                     </div>
                     <div className="flex items-center gap-2 text-[10px] text-neutral shrink-0">
-                      <span>{formatFileSize(file.filesize)}</span>
+                      <span>{formatFileSizeFa(file.filesize)}</span>
                       <Download className="w-3.5 h-3.5 text-primary" />
                     </div>
                   </a>
@@ -304,21 +383,24 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
           )}
 
           {/* فایل‌های ارسالی قبلی توسط دانشجو */}
-          {existingFiles.length > 0 && (
+          {studentFiles.length > 0 && (
             <div className="space-y-1.5">
-              <h4 className="font-bold text-neutral text-[11px]">فایل‌های ارسال‌شده توسط شما:</h4>
+              <h4 className="font-bold text-neutral text-[11px] flex items-center gap-1">
+                <FileCheck className="w-3.5 h-3.5 text-success" />
+                <span>فایل‌های پاسخ ثبت‌شده توسط شما:</span>
+              </h4>
               <div className="space-y-1.5">
-                {existingFiles.map((file, idx) => (
+                {studentFiles.map((file, idx) => (
                   <div
                     key={idx}
                     className="p-2.5 rounded-xl bg-base-500/20 border border-base-500/30 flex items-center justify-between text-xs"
                   >
                     <div className="flex items-center gap-2 truncate">
                       <FileText className="w-4 h-4 text-success shrink-0" />
-                      <span className="font-bold text-base-content truncate">{file.filename}</span>
+                      <span className="font-bold text-base-content truncate">{cleanPersianText(file.filename)}</span>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-[10px] text-neutral">{formatFileSize(file.filesize)}</span>
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      <span className="text-[10px] text-neutral font-mono">{formatFileSizeFa(file.filesize)}</span>
                       <a
                         href={getMoodleFileUrl(file.fileurl, session.token)}
                         target="_blank"
@@ -336,6 +418,15 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
             </div>
           )}
 
+          {/* قوانین و مشخصات بارگذاری */}
+          {(maxFiles || maxSizeBytes || fileTypes) && (
+            <div className="p-2.5 rounded-xl bg-base-500/10 border border-base-500/20 flex items-center justify-between flex-wrap gap-2 text-[10px] text-neutral">
+              {maxFiles && <span>حداکثر تعداد فایل: {toFaDigits(maxFiles)} عدد</span>}
+              {maxSizeBytes && <span>حداکثر حجم مجاز: {formatFileSizeFa(maxSizeBytes)}</span>}
+              {fileTypes && <span>فرمت‌های مجاز: {cleanPersianText(fileTypes)}</span>}
+            </div>
+          )}
+
           {/* اعلان پیام‌های عملیات */}
           {actionSuccess && (
             <div className="p-3 rounded-xl bg-success-soft border border-success/30 text-success font-bold flex items-center gap-2">
@@ -350,16 +441,16 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
             </div>
           )}
 
-          {/* فرم تعاملی ارسال تکلیف (Two-Way Submission) */}
+          {/* فرم تعاملی ارسال پاسخ (Interactive Submission) */}
           <div className="pt-2 border-t border-base-500/25 space-y-3">
             <h4 className="font-black text-base-content text-xs flex items-center gap-1.5">
               <Upload className="w-4 h-4 text-primary" />
-              <span>ارسال و ویرایش پاسخ تکلیف:</span>
+              <span>ارسال یا به‌روزرسانی پاسخ به این تکلیف:</span>
             </h4>
 
             {/* بخش انتخاب فایل */}
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-neutral">بارگذاری فایل پاسخ (PDF, ZIP, Word):</label>
+              <label className="text-[11px] font-bold text-neutral">انتخاب فایل پاسخ (PDF, ZIP, Word):</label>
               <div className="relative">
                 <input
                   type="file"
@@ -374,13 +465,13 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
                   <Upload className="w-6 h-6 text-primary" />
                   {selectedFile ? (
                     <div className="space-y-0.5">
-                      <p className="font-bold text-base-content truncate max-w-xs">{selectedFile.name}</p>
-                      <p className="text-[10px] text-neutral">{formatFileSize(selectedFile.size)}</p>
+                      <p className="font-bold text-base-content truncate max-w-xs">{cleanPersianText(selectedFile.name)}</p>
+                      <p className="text-[10px] text-neutral">{formatFileSizeFa(selectedFile.size)}</p>
                     </div>
                   ) : (
                     <div className="space-y-0.5">
                       <p className="font-bold text-base-content">برای انتخاب فایل اینجا کلیک کنید</p>
-                      <p className="text-[10px] text-neutral">یا فایل را به این بخش بکشید</p>
+                      <p className="text-[10px] text-neutral">یا فایل را به داخل این کادر بکشید</p>
                     </div>
                   )}
                 </label>
@@ -400,11 +491,11 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
 
             {/* بخش پاسخ متنی */}
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-neutral">توضیحات متنی یا پیوند پروژه (اختیاری):</label>
+              <label className="text-[11px] font-bold text-neutral">پاسخ متنی یا توضیحات برای استاد (اختیاری):</label>
               <textarea
                 value={onlineText}
                 onChange={(e) => setOnlineText(e.target.value)}
-                placeholder="متن پاسخ، نکات اجرایی یا لینک گیت‌هاب پروژه..."
+                placeholder="توضیحات، پاسخ تشریحی یا پیوند پروژه در گیت‌هاب..."
                 rows={3}
                 className="w-full p-2.5 rounded-xl bg-base-500/20 border border-base-500/40 text-xs font-sans text-right focus:outline-none focus:border-primary transition leading-relaxed resize-none"
               />
@@ -421,11 +512,10 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
             title="انتقال به برنامه روزانه سروستان"
           >
             <Share2 className="w-3.5 h-3.5" />
-            <span>افزودن به سروستان</span>
+            <span>انتقال به سروستان</span>
           </button>
 
           <div className="flex items-center gap-2">
-            {/* دکمه ذخیره پیش‌نویس / بارگذاری در مودل */}
             <button
               type="button"
               onClick={handleSaveSubmission}
@@ -445,7 +535,6 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
               )}
             </button>
 
-            {/* دکمه ارسال نهایی برای نمره‌دهی */}
             {isDraft && (
               <button
                 type="button"

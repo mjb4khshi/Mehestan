@@ -1,45 +1,35 @@
-import React from 'react';
-import { BookOpen, CheckSquare, Clock, ArrowLeft, ExternalLink, Calendar, Share2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { BookOpen, CheckSquare, Clock, ArrowLeft, ExternalLink, Calendar, Share2, Sparkles, ChevronLeft } from 'lucide-react';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
 import { exportAllAssignmentsToSarvestan } from '../services/sarvestanBridge';
+import { cleanCourseName, cleanPersianText, toFaDigits, formatAssignmentTiming } from '../utils/persianUtils';
+import AssignmentDetailModal from '../components/AssignmentDetailModal';
 
 export default function HomeScreen({ onSelectCourse, onGoToAssignments }) {
   const { siteInfo, courses, assignments, loading } = useMoodleAuth();
+  const [selectedAssignment, setSelectedAssignment] = useState(null);
 
-  const nowMs = Date.now();
+  const nowSec = Math.floor(Date.now() / 1000);
   const pendingAssignments = assignments
-    .filter((a) => a.duedate && a.duedate * 1000 > nowMs)
+    .filter((a) => a.duedate && a.duedate > nowSec)
     .sort((a, b) => a.duedate - b.duedate);
 
   const nearestAssignment = pendingAssignments[0];
-
-  const formatDueTime = (timestamp) => {
-    if (!timestamp) return 'بدون موعد';
-    const d = new Date(timestamp * 1000);
-    const diffHours = Math.round((d.getTime() - nowMs) / (1000 * 60 * 60));
-    if (diffHours < 24 && diffHours > 0) {
-      return `${diffHours} ساعت مانده`;
-    }
-    const diffDays = Math.round(diffHours / 24);
-    if (diffDays > 0) {
-      return `${diffDays} روز مانده`;
-    }
-    return 'موعد گذشته';
-  };
+  const nearestTiming = nearestAssignment ? formatAssignmentTiming(nearestAssignment.duedate) : null;
 
   return (
     <div className="p-4 space-y-5 pb-24 max-w-2xl mx-auto">
-      {/* بنر خوش‌آمدگویی */}
-      <div className="mehestan-card p-4 flex items-center justify-between gap-3">
+      {/* بنر خوش‌آمدگویی سبک سروستان */}
+      <div className="sarv-card p-4 flex items-center justify-between gap-3 shadow-sm">
         <div className="space-y-1 min-w-0">
           <p className="text-xs text-neutral">خوش آمدید،</p>
           <h2 className="text-base font-black text-base-content truncate">
-            {siteInfo?.fullname || 'دانشجوی گرامی'}
+            {cleanPersianText(siteInfo?.fullname) || 'دانشجوی گرامی'}
           </h2>
           <p className="text-[11px] text-neutral flex items-center gap-2">
-            <span>{courses.length} درس فعال</span>
+            <span>{toFaDigits(courses.length)} درس فعال</span>
             <span>•</span>
-            <span className="text-amber-500 font-bold">{pendingAssignments.length} تکلیف در انتظار</span>
+            <span className="text-amber-500 font-bold">{toFaDigits(pendingAssignments.length)} تکلیف در انتظار</span>
           </p>
         </div>
 
@@ -58,19 +48,29 @@ export default function HomeScreen({ onSelectCourse, onGoToAssignments }) {
 
       {/* کارت نزدیک‌ترین موعد تکلیف */}
       {nearestAssignment && (
-        <div className="mehestan-card p-4 border-amber-500/30 bg-amber-500/5 space-y-2">
+        <div
+          onClick={() => setSelectedAssignment(nearestAssignment)}
+          className="sarv-card p-4 border-amber-500/35 bg-amber-500/5 space-y-2 cursor-pointer hover:border-amber-500/60 transition group shadow-sm"
+        >
           <div className="flex items-center justify-between text-xs">
             <span className="font-bold text-amber-500 flex items-center gap-1.5">
-              <Clock className="w-4 h-4" />
+              <Clock className="w-4 h-4 text-amber-500" />
               <span>نزدیک‌ترین موعد تکلیف:</span>
             </span>
-            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-bold text-[10px]">
-              {formatDueTime(nearestAssignment.duedate)}
+            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 font-black text-[10px] border border-amber-500/30">
+              {nearestTiming?.text}
             </span>
           </div>
-          <div className="min-w-0">
-            <h3 className="text-sm font-black text-base-content truncate">{nearestAssignment.name}</h3>
-            <p className="text-xs text-neutral mt-0.5 truncate">{nearestAssignment.courseName}</p>
+          <div className="min-w-0 flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-xs font-black text-base-content truncate group-hover:text-primary transition">
+                {cleanPersianText(nearestAssignment.name)}
+              </h3>
+              <p className="text-[11px] text-neutral mt-0.5 truncate">
+                {cleanCourseName(nearestAssignment.courseName || nearestAssignment.courseShortName)}
+              </p>
+            </div>
+            <ChevronLeft className="w-4 h-4 text-neutral group-hover:text-primary transition shrink-0 mr-2" />
           </div>
         </div>
       )}
@@ -82,11 +82,11 @@ export default function HomeScreen({ onSelectCourse, onGoToAssignments }) {
             <BookOpen className="w-4 h-4 text-primary" />
             <span>دروس ترم جاری</span>
           </h3>
-          <span className="text-xs text-neutral">{courses.length} عنوان</span>
+          <span className="text-xs text-neutral font-bold">{toFaDigits(courses.length)} عنوان</span>
         </div>
 
         {courses.length === 0 ? (
-          <div className="mehestan-card p-8 text-center text-xs text-neutral">
+          <div className="sarv-card p-8 text-center text-xs text-neutral">
             درسی در سامانه مودل یافت نشد یا در حال بارگذاری است.
           </div>
         ) : (
@@ -95,26 +95,48 @@ export default function HomeScreen({ onSelectCourse, onGoToAssignments }) {
               <div
                 key={course.id}
                 onClick={() => onSelectCourse && onSelectCourse(course)}
-                className="mehestan-card p-4 hover:border-primary/50 transition cursor-pointer space-y-3 group"
+                className="sarv-card p-4 hover:border-primary/50 transition cursor-pointer space-y-3 group shadow-sm"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
-                    <BookOpen className="w-4.5 h-4.5" />
-                  </div>
-                  <ArrowLeft className="w-4 h-4 text-neutral group-hover:text-primary transition shrink-0" />
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/25">
+                    {cleanPersianText(course.shortname)}
+                  </span>
+                  {course.progress !== undefined && (
+                    <span className="text-[10px] font-mono text-neutral">
+                      {toFaDigits(course.progress)}٪
+                    </span>
+                  )}
                 </div>
 
-                <div className="min-w-0">
-                  <h4 className="text-xs font-black text-base-content line-clamp-2 leading-relaxed">
-                    {course.fullname}
+                <div className="space-y-1">
+                  <h4 className="text-xs font-black text-base-content leading-relaxed group-hover:text-primary transition line-clamp-2">
+                    {cleanCourseName(course.fullname)}
                   </h4>
-                  <p className="text-[10px] text-neutral mt-1 truncate">{course.shortname}</p>
+                  {course.categoryname && (
+                    <p className="text-[10px] text-neutral truncate">
+                      {cleanPersianText(course.categoryname)}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-base-500/20 flex items-center justify-between text-[11px] text-primary font-bold">
+                  <span>مشاهده سرفصل‌ها و فایل‌ها</span>
+                  <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* پنجره تعاملی تکلیف در صورت کلیک */}
+      {selectedAssignment && (
+        <AssignmentDetailModal
+          assignment={selectedAssignment}
+          onClose={() => setSelectedAssignment(null)}
+          onSubmitted={() => {}}
+        />
+      )}
     </div>
   );
 }
