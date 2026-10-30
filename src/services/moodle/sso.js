@@ -15,18 +15,12 @@ export function buildMoodleSSOLaunchUrl(siteUrl, options = {}) {
   const urlScheme = options.urlScheme || 'moodlemobile';
   const passport = options.passport ?? Math.random() * 1000;
 
-  // شناسه ارائه‌دهنده احراز هویت یکپارچه (OAuth2 / CAS Identity Provider ID)
-  // در سامانه مجازی خواجه‌نصیر (vc.kntu.ac.ir) شناسه ارائه‌دهنده 1 است (oauthsso=1)
-  const oauthsso =
-    options.oauthsso !== undefined
-      ? options.oauthsso
-      : cleanSiteUrl.includes('kntu') || !options.disableOAuthSso
-      ? '1'
-      : null;
-
+  // توجه مهم: پارامتر oauthsso در اولین درخواست لانچ نباید ارسال شود زیرا سرور مودل
+  // در غیاب نشست فعال، خطای نشست منقضی شده داده و صفحه خالی/سیاه باز می‌کند.
+  // بدون این پارامتر، مودل کوکی نشست را برقرار کرده و به صفحه ورود با دکمه حساب دانشگاهی هدایت می‌کند.
   let query = '';
-  if (oauthsso) {
-    query += `oauthsso=${encodeURIComponent(oauthsso)}&`;
+  if (options.oauthsso) {
+    query += `oauthsso=${encodeURIComponent(options.oauthsso)}&`;
   }
   query += `service=${encodeURIComponent(service)}&passport=${passport}&urlscheme=${encodeURIComponent(urlScheme)}`;
 

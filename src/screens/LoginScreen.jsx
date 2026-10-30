@@ -50,7 +50,6 @@ export default function LoginScreen() {
       const { launchUrl } = buildMoodleSSOLaunchUrl(cleanUrl, {
         service: 'moodle_mobile_app',
         urlScheme: 'moodlemobile',
-        oauthsso: '1',
       });
 
       setActiveLaunchUrl(launchUrl);
