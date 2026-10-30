@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Mehestan</string>
+    <string name="title_activity_main">Mehestan</string>
+    <string name="package_name">ir.mjb4khshi.mehestan</string>
+    <string name="custom_url_scheme">ir.mjb4khshi.mehestan</string>
+</resources>

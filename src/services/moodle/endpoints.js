@@ -9,7 +9,9 @@ export const UNIVERSITY_MOODLE_PRESETS = [
     shortName: 'خواجه نصیر (KNTU)',
     url: 'https://lms.kntu.ac.ir',
     mobileService: 'moodle_mobile_app',
-    badge: 'فعال',
+    authType: 'sso',
+    ssoButtonText: 'ورود با سامانه احراز هویت مرکزی خواجه نصیر (SSO)',
+    badge: 'احراز هویت مرکزی',
   },
   {
     id: 'sbu',
@@ -17,7 +19,9 @@ export const UNIVERSITY_MOODLE_PRESETS = [
     shortName: 'شهید بهشتی (SBU)',
     url: 'https://lms.sbu.ac.ir',
     mobileService: 'moodle_mobile_app',
-    badge: 'فعال',
+    authType: 'credentials',
+    ssoButtonText: 'ورود به سامانه یادگیری شهید بهشتی',
+    badge: 'مستقیم',
   },
   {
     id: 'ut',
@@ -25,7 +29,9 @@ export const UNIVERSITY_MOODLE_PRESETS = [
     shortName: 'دانشگاه تهران (UT)',
     url: 'https://elearn.ut.ac.ir',
     mobileService: 'moodle_mobile_app',
-    badge: 'فعال',
+    authType: 'sso',
+    ssoButtonText: 'ورود با سامانه احراز هویت یکتای دانشگاه تهران',
+    badge: 'احراز هویت مرکزی',
   },
   {
     id: 'aut',
@@ -33,7 +39,9 @@ export const UNIVERSITY_MOODLE_PRESETS = [
     shortName: 'پلی‌تکنیک (AUT)',
     url: 'https://lms.aut.ac.ir',
     mobileService: 'moodle_mobile_app',
-    badge: 'فعال',
+    authType: 'credentials',
+    ssoButtonText: 'ورود به سامانه یادگیری پلی‌تکنیک',
+    badge: 'مستقیم',
   },
   {
     id: 'custom',
@@ -41,6 +49,8 @@ export const UNIVERSITY_MOODLE_PRESETS = [
     shortName: 'آدرس دلخواه',
     url: '',
     mobileService: 'moodle_mobile_app',
+    authType: 'credentials',
+    ssoButtonText: 'ورود مستقیم',
     badge: 'دستی',
   },
 ];

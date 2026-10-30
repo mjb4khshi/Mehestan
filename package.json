@@ -9,15 +9,20 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/browser": "^8.0.5",
     "@capacitor/core": "^8.5.3",
     "canvas-confetti": "^1.9.4",
     "framer-motion": "^12.4.7",
     "lucide-react": "^1.16.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "sarv-ui": "file:./sarv-ui-0.3.1.tgz"
+    "sarv-ui": "file:./sarv-ui-0.3.1.tgz",
+    "ts-md5": "^2.0.1"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/cli": "^8.6.0",
     "@tailwindcss/vite": "^4.0.9",
     "@vitejs/plugin-react": "^4.3.4",
     "tailwindcss": "^4.0.9",
