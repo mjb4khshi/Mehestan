@@ -10,7 +10,7 @@ const NAV_ITEMS = [
 
 export default function BottomNav({ activeTab, onChangeTab, assignmentBadgeCount = 0 }) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-base-900/90 backdrop-blur-lg border-t border-base-500/30 px-3 py-2 flex items-center justify-around safe-bottom">
+    <nav className="fixed bottom-0 inset-x-0 z-40 glass-nav px-3 py-2 flex items-center justify-around safe-bottom">
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon;
         const isActive = activeTab === item.id;

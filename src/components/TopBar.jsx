@@ -8,7 +8,7 @@ export default function TopBar({ title, onBack, showBack = false }) {
   const { siteInfo, refreshData, loading, logout, isAuthenticated } = useMoodleAuth();
 
   return (
-    <header className="sticky top-0 z-40 bg-base-900/80 backdrop-blur-md border-b border-base-500/30 px-4 py-3 flex items-center justify-between">
+    <header className="sticky top-0 z-40 bg-base/80 backdrop-blur-xl border-b border-base-500/30 px-4 py-3 flex items-center justify-between">
       <div className="flex items-center gap-3">
         {showBack ? (
           <button

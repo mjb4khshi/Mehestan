@@ -173,13 +173,13 @@ export function MoodleAuthProvider({ children }) {
     setLoading(true);
     setError(null);
     const demoSession = {
-      siteUrl: 'https://lms.kntu.ac.ir',
+      siteUrl: 'https://vc.kntu.ac.ir',
       username: 'دانشجوی خواجه نصیر (دمو)',
       token: 'demo_token_mehestan_kntu',
       isDemo: true,
     };
     const demoInfo = {
-      sitename: 'سامانه یادگیری الکترونیکی دانشگاه صنعتی خواجه نصیرالدین طوسی (دمو)',
+      sitename: 'سامانه آموزش الکترونیکی و مجازی دانشگاه صنعتی خواجه نصیرالدین طوسی (vc.kntu.ac.ir)',
       username: 'kntu_demo_student',
       firstname: 'دانشجو',
       lastname: 'خواجه نصیر',
@@ -227,7 +227,7 @@ export function MoodleAuthProvider({ children }) {
   useEffect(() => {
     const cleanup = setupDeepLinkListener((parsed) => {
       if (parsed && parsed.token) {
-        const targetSiteUrl = parsed.siteUrl || session?.siteUrl || 'https://lms.kntu.ac.ir';
+        const targetSiteUrl = parsed.siteUrl || session?.siteUrl || 'https://vc.kntu.ac.ir';
         loginWithToken(targetSiteUrl, parsed.token, parsed.privateToken).catch((err) => {
           console.error('SSO Login with token failed:', err);
         });

@@ -59,7 +59,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-base-900 text-base-content font-sans flex flex-col">
+    <div className="min-h-screen bg-base text-base-content flex flex-col pb-20 md:pb-0 selection:bg-primary/20">
       <TopBar
         title={selectedCourse ? selectedCourse.fullname : 'مهستان'}
         showBack={Boolean(selectedCourse)}
