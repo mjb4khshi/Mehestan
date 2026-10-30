@@ -50,6 +50,8 @@ export default function LoginScreen() {
       const { launchUrl } = buildMoodleSSOLaunchUrl(cleanUrl, {
         service: 'moodle_mobile_app',
         urlScheme: 'moodlemobile',
+        oauthsso: cleanUrl.includes('kntu') ? 1 : null,
+        confirmed: 1,
       });
 
       setActiveLaunchUrl(launchUrl);
@@ -58,7 +60,7 @@ export default function LoginScreen() {
       if (Capacitor.isNativePlatform()) {
         await Browser.open({ url: launchUrl });
       } else {
-        window.open(launchUrl, '_blank', 'noopener,noreferrer');
+        window.open(launchUrl, '_blank');
       }
     } catch (err) {
       setLocalError(err.message || 'خطا در باز کردن صفحه احراز هویت مرکزی');

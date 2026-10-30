@@ -14,15 +14,19 @@ export function buildMoodleSSOLaunchUrl(siteUrl, options = {}) {
   // سامانه مودل به‌صورت پیش‌فرض پروتکل moodlemobile را در تنظیمات tool_mobile مجاز می‌داند
   const urlScheme = options.urlScheme || 'moodlemobile';
   const passport = options.passport ?? Math.random() * 1000;
+  // برای خواجه نصیر و سامانه‌های SSO، پارامتر oauthsso=1 هدایت مستقیم به ورود مرکزی دانشگاه را آغاز می‌کند
+  const oauthsso = options.oauthsso !== undefined ? options.oauthsso : (cleanSiteUrl.includes('kntu') ? 1 : null);
+  // ارسال confirmed=1 مانع از ریدایرکت خالی و صفحه سیاه در مرورگرهای دسکتاپ می‌شود
+  const confirmed = options.confirmed !== undefined ? options.confirmed : 1;
 
-  // توجه مهم: پارامتر oauthsso در اولین درخواست لانچ نباید ارسال شود زیرا سرور مودل
-  // در غیاب نشست فعال، خطای نشست منقضی شده داده و صفحه خالی/سیاه باز می‌کند.
-  // بدون این پارامتر، مودل کوکی نشست را برقرار کرده و به صفحه ورود با دکمه حساب دانشگاهی هدایت می‌کند.
   let query = '';
-  if (options.oauthsso) {
-    query += `oauthsso=${encodeURIComponent(options.oauthsso)}&`;
+  if (oauthsso) {
+    query += `oauthsso=${encodeURIComponent(oauthsso)}&`;
   }
   query += `service=${encodeURIComponent(service)}&passport=${passport}&urlscheme=${encodeURIComponent(urlScheme)}`;
+  if (confirmed) {
+    query += `&confirmed=1`;
+  }
 
   const launchUrl = `${cleanSiteUrl}/admin/tool/mobile/launch.php?${query}`;
 
@@ -31,7 +35,8 @@ export function buildMoodleSSOLaunchUrl(siteUrl, options = {}) {
     passport,
     service,
     urlScheme,
-    oauthsso: options.oauthsso || null,
+    oauthsso: oauthsso || null,
+    confirmed,
     createdAt: Date.now(),
   };
 
@@ -50,6 +55,8 @@ export function buildMoodleSSOLaunchUrl(siteUrl, options = {}) {
     cleanSiteUrl,
     urlScheme,
     service,
+    oauthsso,
+    confirmed,
   };
 }
 
@@ -92,9 +99,11 @@ export function parseMoodleSSOResponse(rawInput, expectedSiteUrl = null) {
   }
 
   let str = rawInput.trim();
+  // حذف کوتیشن‌های احتمالی ابتدا و انتهای ورودی
+  str = str.replace(/^["']|["']$/g, '').trim();
 
-  // ۱. بررسی اشتباه رایج: کاربر آدرس صفحه شروع (launch.php) را پیست کرده باشد
-  if (str.includes('/launch.php')) {
+  // ۱. بررسی اشتباه رایج: کاربر آدرس صفحه شروع (launch.php) را بدون توکن پیست کرده باشد
+  if (str.includes('/launch.php') && !str.includes('token=')) {
     throw new Error(
       'این آدرس صفحه شروع لاگین است، نه توکن نهایی. لطفاً ابتدا در صفحه بازشده با شماره دانشجویی و رمز دانشگاه لاگین کنید. پس از ورود، لینکی که با //:moodlemobile آغاز می‌شود یا توکن ۳۲ حرفی مودل را در این کادر قرار دهید.'
     );
@@ -247,31 +256,75 @@ export function setupDeepLinkListener(onTokenReceived) {
       removeCapacitorListener = handle;
     });
   } else {
-    // در محیط وب: بررسی وجود توکن یا webAppDeepLink در Query Params
-    try {
-      const searchParams = new URLSearchParams(window.location.search);
-      const deepLink = searchParams.get('webAppDeepLink') || searchParams.get('token');
-      if (deepLink) {
-        const parsed = parseMoodleSSOResponse(decodeURIComponent(deepLink));
-        if (parsed.success && parsed.token) {
-          onTokenReceived(parsed);
-        }
-      }
+    // در محیط وب: بررسی وجود توکن یا deepLink در Query Params و Hash
+    const checkIncomingWebToken = () => {
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+        let deepLink =
+          searchParams.get('webAppDeepLink') ||
+          searchParams.get('token') ||
+          searchParams.get('deepLink') ||
+          searchParams.get('url');
 
-      // تعریف handleOpenURL روی window برای ارتباط تستی
-      window.handleOpenURL = (url) => {
+        // بررسی Hash در صورت ارسال در فرگمنت
+        if (!deepLink && window.location.hash) {
+          const hashStr = window.location.hash.replace(/^#/, '');
+          if (hashStr.includes('token=') || hashStr.includes('moodlemobile://')) {
+            deepLink = hashStr;
+          } else {
+            const hashParams = new URLSearchParams(hashStr);
+            deepLink = hashParams.get('deepLink') || hashParams.get('token');
+          }
+        }
+
+        if (deepLink) {
+          const parsed = parseMoodleSSOResponse(decodeURIComponent(deepLink));
+          if (parsed.success && parsed.token) {
+            onTokenReceived(parsed);
+            try {
+              window.history.replaceState({}, document.title, window.location.pathname);
+            } catch (e) {
+              // Ignore
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error handling incoming web deepLink:', err);
+      }
+    };
+
+    checkIncomingWebToken();
+
+    // شنود پیام‌های پنجره فرزند (در صورت باز شدن در Popup یا Window)
+    const onWindowMessage = (event) => {
+      if (typeof event.data === 'string' && (event.data.includes('moodlemobile://') || event.data.includes('token='))) {
         try {
-          const parsed = parseMoodleSSOResponse(url);
+          const parsed = parseMoodleSSOResponse(event.data);
           if (parsed.success && parsed.token) {
             onTokenReceived(parsed);
           }
         } catch (err) {
-          console.error('Error in window.handleOpenURL:', err);
+          // Ignore
         }
-      };
-    } catch (e) {
-      // Ignore
-    }
+      }
+    };
+    window.addEventListener('message', onWindowMessage);
+
+    // تعریف handleOpenURL روی window برای ارتباط تستی یا اجرای اسکریپت
+    window.handleOpenURL = (url) => {
+      try {
+        const parsed = parseMoodleSSOResponse(url);
+        if (parsed.success && parsed.token) {
+          onTokenReceived(parsed);
+        }
+      } catch (err) {
+        console.error('Error in window.handleOpenURL:', err);
+      }
+    };
+
+    return () => {
+      window.removeEventListener('message', onWindowMessage);
+    };
   }
 
   return () => {
