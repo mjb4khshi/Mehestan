@@ -13,17 +13,31 @@ export function buildMoodleSSOLaunchUrl(siteUrl, options = {}) {
   const service = options.service || 'moodle_mobile_app';
   // سامانه مودل به‌صورت پیش‌فرض پروتکل moodlemobile را در تنظیمات tool_mobile مجاز می‌داند
   const urlScheme = options.urlScheme || 'moodlemobile';
-  const passport = Math.floor(Math.random() * 1000000) / 1000;
+  const passport = options.passport ?? Math.random() * 1000;
 
-  const launchUrl = `${cleanSiteUrl}/admin/tool/mobile/launch.php?service=${encodeURIComponent(
-    service
-  )}&passport=${passport}&urlscheme=${encodeURIComponent(urlScheme)}`;
+  // شناسه ارائه‌دهنده احراز هویت یکپارچه (OAuth2 / CAS Identity Provider ID)
+  // در سامانه مجازی خواجه‌نصیر (vc.kntu.ac.ir) شناسه ارائه‌دهنده 1 است (oauthsso=1)
+  const oauthsso =
+    options.oauthsso !== undefined
+      ? options.oauthsso
+      : cleanSiteUrl.includes('kntu') || !options.disableOAuthSso
+      ? '1'
+      : null;
+
+  let query = '';
+  if (oauthsso) {
+    query += `oauthsso=${encodeURIComponent(oauthsso)}&`;
+  }
+  query += `service=${encodeURIComponent(service)}&passport=${passport}&urlscheme=${encodeURIComponent(urlScheme)}`;
+
+  const launchUrl = `${cleanSiteUrl}/admin/tool/mobile/launch.php?${query}`;
 
   const pendingData = {
     siteUrl: cleanSiteUrl,
     passport,
     service,
     urlScheme,
+    oauthsso,
     createdAt: Date.now(),
   };
 

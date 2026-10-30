@@ -34,6 +34,7 @@ export default function LoginScreen() {
   // وضعیت لاگین مرکزی و ورود دستی توکن در وب
   const [waitingForSSO, setWaitingForSSO] = useState(false);
   const [manualTokenInput, setManualTokenInput] = useState('');
+  const [activeLaunchUrl, setActiveLaunchUrl] = useState('');
 
   const cleanUrl = lmsUrl.trim();
 
@@ -49,8 +50,10 @@ export default function LoginScreen() {
       const { launchUrl } = buildMoodleSSOLaunchUrl(cleanUrl, {
         service: 'moodle_mobile_app',
         urlScheme: 'moodlemobile',
+        oauthsso: '1',
       });
 
+      setActiveLaunchUrl(launchUrl);
       setWaitingForSSO(true);
 
       if (Capacitor.isNativePlatform()) {
@@ -248,8 +251,21 @@ export default function LoginScreen() {
                     <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                     <span>صفحه احراز هویت در مرورگر باز شد</span>
                   </div>
+                  {activeLaunchUrl && (
+                    <div className="flex items-center justify-between text-[10px] text-neutral bg-base-500/20 px-2.5 py-1.5 rounded-lg font-mono">
+                      <span className="truncate max-w-[220px]" dir="ltr">{activeLaunchUrl}</span>
+                      <a
+                        href={activeLaunchUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary hover:underline font-sans font-bold shrink-0 mr-2"
+                      >
+                        باز کردن مجدد
+                      </a>
+                    </div>
+                  )}
                   <p className="text-[11px] text-neutral leading-relaxed">
-                    پس از ورود موفق در درگاه دانشگاه، در اپلیکیشن اندروید به صورت خودکار وارد می‌شوید. در نسخه وب، لینک یا توکن بازگشتی را در کادر زیر قرار دهید:
+                    پس از ورود موفق در درگاه دانشگاه، در اپلیکیشن اندروید به صورت خودکار وارد می‌شوید. در نسخه وب، لینک یا توکن بازگشتی (moodlemobile://token=...) را در کادر زیر قرار دهید:
                   </p>
 
                   <form onSubmit={handleManualTokenSubmit} className="space-y-2">
