@@ -1,3 +1,96 @@
+import { Capacitor, CapacitorHttp } from '@capacitor/core';
+
+/**
+ * بررسی و دریافت تنظیمات عمومی هر سامانه مودل (Moodle Public Config)
+ * طبق مشخصات استاندارد اپلیکیشن رسمی مودل (tool_mobile_get_public_config)
+ * این متد به مهستان اجازه می‌دهد به‌صورت یونیک و سراسری برای هر دانشگاهی،
+ * نام سامانه، وضعیت وب‌سرویس، درگاه‌های احراز هویت مرکزی (Identity Providers)
+ * و فرم ورود را استخراج و در برنامه ارائه دهد.
+ */
+export async function fetchMoodlePublicConfig(rawSiteUrl) {
+  if (!rawSiteUrl || !rawSiteUrl.trim()) {
+    throw new Error('آدرس سامانه نامعتبر است.');
+  }
+
+  let cleanUrl = rawSiteUrl.trim();
+  if (!/^https?:\/\//i.test(cleanUrl)) {
+    cleanUrl = `https://${cleanUrl}`;
+  }
+  cleanUrl = cleanUrl.replace(/\/+$/, '');
+
+  const targetUrl = `${cleanUrl}/lib/ajax/service-nologin.php?info=tool_mobile_get_public_config`;
+  const payload = [{ index: 0, methodname: 'tool_mobile_get_public_config', args: {} }];
+
+  let data;
+  if (Capacitor.isNativePlatform()) {
+    // در اندروید و iOS: درخواست مستقیم از طریق کلاینت نیتیو بدون محدودیت CORS
+    const response = await CapacitorHttp.post({
+      url: targetUrl,
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'MoodleMobile/4.4.0',
+      },
+      data: payload,
+    });
+    data = response.data;
+  } else {
+    // در محیط وب / دسکتاپ لوکال: عبور از پراکسی توسعه دهنده جهت حل CORS
+    const isLocal =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    const fetchUrl = isLocal ? `/api/moodle-proxy?url=${encodeURIComponent(targetUrl)}` : targetUrl;
+
+    const res = await fetch(fetchUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      throw new Error(`پاسخی از وب‌سرویس دانشگاه دریافت نشد (${res.status})`);
+    }
+
+    data = await res.json();
+  }
+
+  // داده‌های برگشتی سرویس مودل به‌صورت آرایه است
+  const config = Array.isArray(data) && data[0]?.data ? data[0].data : data;
+
+  if (!config) {
+    throw new Error('قالب پاسخ تنظیمات عمومی مودل معتبر نیست.');
+  }
+
+  // استخراج ارائه‌دهندگان هویت مرکزی (مانند حساب دانشگاهی، CAS، SAML، OAuth2)
+  const identityProviders = (config.identityproviders || []).map((idp) => {
+    let id = null;
+    if (idp.url) {
+      const match = idp.url.match(/[?&]id=([^&#]+)/);
+      if (match) id = match[1];
+    }
+    return {
+      name: idp.name,
+      iconUrl: idp.iconurl || null,
+      url: idp.url,
+      id,
+    };
+  });
+
+  return {
+    rawUrl: rawSiteUrl,
+    siteUrl: cleanUrl,
+    siteName: config.sitename || cleanUrl,
+    typeOfLogin: Number(config.typeoflogin ?? 0), // 0: فرم دستی، 1: SSO در مرورگر، 2: Embedded
+    showLoginForm: config.showloginform !== undefined ? Boolean(config.showloginform) : true,
+    enableWebServices: Boolean(config.enablewebservices),
+    enableMobileWebService: Boolean(config.enablemobilewebservice),
+    identityProviders,
+    forgottenPasswordUrl: config.forgottenpasswordurl || `${cleanUrl}/login/forgot_password.php`,
+    guestLogin: Boolean(config.guestlogin),
+    launchUrl: config.launchurl || `${cleanUrl}/admin/tool/mobile/launch.php`,
+    rawConfig: config,
+  };
+}
+
 /**
  * کلاینت رسمی و جامع ارتباط با وب‌سرویس‌های مودل (Moodle Mobile REST API)
  * سازگار با پروتکل Moodle 3.x و Moodle 4.x
