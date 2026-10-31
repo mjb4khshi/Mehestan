@@ -26,6 +26,7 @@ import {
   Eye,
   Camera,
   Plus,
+  Sparkles,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -52,7 +53,7 @@ import {
 } from '../utils/persianUtils';
 
 export default function AssignmentDetailModal({ assignment, onClose, onSubmitted }) {
-  const { session } = useMoodleAuth();
+  const { session, siteInfo } = useMoodleAuth();
   const [submissionStatus, setSubmissionStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -68,18 +69,56 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
   const [selectedPhotos, setSelectedPhotos] = useState([]);
   const [convertingPdf, setConvertingPdf] = useState(false);
 
+  // فرمت استاندارد دانشگاه: کد دانشجویی _ نام دانشجو _ نام تکلیف
+  const computeStandardFilename = (customExt = '.pdf') => {
+    let studentId = String(siteInfo?.username || session?.username || '').trim();
+    if (!studentId || studentId.includes('demo') || studentId.includes('دانشجو')) {
+      studentId = '40100001';
+    }
+
+    let studentName = String(siteInfo?.fullname || '').trim();
+    if (!studentName || studentName.includes('دمو')) {
+      studentName = 'دانشجو';
+    }
+    const cleanStudentName = studentName.replace(/\s+/g, '_').replace(/[/\\?%*:|"<>]/g, '');
+
+    const rawAssignName = cleanPersianText(assignment?.name || '').trim();
+    const cleanAssign = rawAssignName.replace(/\s+/g, '_').replace(/[/\\?%*:|"<>]/g, '');
+
+    const parts = [studentId, cleanStudentName];
+    if (cleanAssign) parts.push(cleanAssign);
+
+    const ext = customExt.startsWith('.') ? customExt : `.${customExt}`;
+    return `${parts.join('_')}${ext}`;
+  };
+
+  const [customPdfName, setCustomPdfName] = useState('');
+
+  // مقداردهی اولیه نام فایل طبق استاندارد دانشگاه
+  useEffect(() => {
+    if (!customPdfName) {
+      setCustomPdfName(computeStandardFilename('.pdf'));
+    }
+  }, [assignment, siteInfo, session]);
+
   const handleConvertPhotos = async () => {
     if (selectedPhotos.length === 0) return;
     setConvertingPdf(true);
     setActionError('');
     try {
-      const coursePrefix = cleanCourseName(assignment?.coursename || 'hw');
-      const safeFilename = `${coursePrefix}_submission_${Date.now().toString().slice(-4)}.pdf`;
-      const pdfFile = await convertImagesToPdf(selectedPhotos, safeFilename);
+      let finalFilename = (customPdfName || '').trim();
+      if (!finalFilename) {
+        finalFilename = computeStandardFilename('.pdf');
+      } else if (!finalFilename.toLowerCase().endsWith('.pdf')) {
+        finalFilename = `${finalFilename}.pdf`;
+      }
+      finalFilename = finalFilename.replace(/[/\\?%*:|"<>]/g, '');
+
+      const pdfFile = await convertImagesToPdf(selectedPhotos, finalFilename);
       setSelectedFile(pdfFile);
       setShowImageToPdf(false);
       setSelectedPhotos([]);
-      setActionSuccess('فایل PDF از تصاویر شما تولید و برای ارسال آماده شد.');
+      setActionSuccess(`فایل PDF استاندارد «${finalFilename}» با موفقیت ایجاد و پیوست شد.`);
       setTimeout(() => setActionSuccess(''), 4000);
     } catch (err) {
       console.error('Image to PDF conversion error:', err);
@@ -87,6 +126,18 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
     } finally {
       setConvertingPdf(false);
     }
+  };
+
+  const handleStandardizeFileName = () => {
+    if (!selectedFile) return;
+    const currentName = selectedFile.name || '';
+    const lastDot = currentName.lastIndexOf('.');
+    const ext = lastDot !== -1 ? currentName.slice(lastDot) : '.pdf';
+    const standardName = computeStandardFilename(ext);
+    const renamed = new File([selectedFile], standardName, { type: selectedFile.type });
+    setSelectedFile(renamed);
+    setActionSuccess(`نام فایل به فرمت استاندارد دانشگاه («${standardName}») تغییر یافت.`);
+    setTimeout(() => setActionSuccess(''), 4000);
   };
 
   const handleInAppDownload = async (fileUrl, filename) => {
@@ -622,10 +673,48 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
                       className="text-[10px] text-error hover:underline flex items-center gap-1 font-bold cursor-pointer mr-auto"
                     >
                       <Trash2 className="w-3 h-3" />
-                      <span>حذف فایل انتخاب‌شده</span>
+                      <span>حذف فایل</span>
                     </button>
                   )}
                 </div>
+
+                {selectedFile && (
+                  <div className="p-3 rounded-xl bg-base-500/10 border border-base-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                        <FileCheck className="w-4 h-4" />
+                      </div>
+                      <div className="overflow-hidden space-y-0.5">
+                        <p className="font-mono text-xs font-bold text-base-content dir-ltr truncate text-left" dir="ltr">
+                          {selectedFile.name}
+                        </p>
+                        <p className="text-[10px] text-neutral">
+                          حجم فایل: {formatFileSizeFa(selectedFile.size)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewFile(selectedFile)}
+                        className="px-2.5 py-1 rounded-lg bg-base-100 hover:bg-base-200 text-base-content border border-base-500/30 text-[10px] font-bold cursor-pointer transition shadow-xs flex items-center gap-1"
+                        title="مشاهده پیش‌نمایش فایل"
+                      >
+                        <Eye className="w-3 h-3" />
+                        <span>پیش‌نمایش</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleStandardizeFileName}
+                        className="px-2.5 py-1 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 text-purple-600 border border-purple-500/30 text-[10px] font-bold cursor-pointer transition shadow-xs flex items-center gap-1"
+                        title="تغییر نام به فرمت استاندارد دانشگاه (کد دانشجویی _ نام دانشجو)"
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        <span>نام استاندارد دانشگاه</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* ابزار تبدیل عکس به PDF */}
                 {showImageToPdf && (
@@ -721,6 +810,34 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
                               </button>
                             </div>
                           ))}
+                        </div>
+
+                        {/* نام فایل خروجی طبق استاندارد دانشگاه */}
+                        <div className="space-y-1.5 p-3 rounded-xl bg-base-100 border border-purple-500/25">
+                          <div className="flex items-center justify-between text-[11px] font-bold">
+                            <label htmlFor="custom-pdf-name-input" className="text-base-content flex items-center gap-1.5">
+                              <span>نام فایل خروجی PDF (استاندارد دانشگاه):</span>
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => setCustomPdfName(computeStandardFilename('.pdf'))}
+                              className="text-purple-600 hover:underline text-[10px] font-bold cursor-pointer"
+                            >
+                              بازنشانی به استاندارد
+                            </button>
+                          </div>
+                          <input
+                            id="custom-pdf-name-input"
+                            type="text"
+                            value={customPdfName}
+                            onChange={(e) => setCustomPdfName(e.target.value)}
+                            placeholder="40123456_AliRezaei_HW1.pdf"
+                            className="w-full px-3 py-1.5 rounded-lg bg-base-500/10 border border-base-500/30 text-xs font-mono text-base-content focus:outline-none focus:border-purple-500 transition text-left dir-ltr"
+                            dir="ltr"
+                          />
+                          <p className="text-[10px] text-neutral">
+                            فرمت استاندارد دانشگاه: <span className="font-mono text-purple-600 font-bold">کد دانشجویی _ نام دانشجو _ نام تکلیف</span>
+                          </p>
                         </div>
 
                         <button

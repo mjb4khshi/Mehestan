@@ -25,7 +25,8 @@ export default function DocumentViewerModal({ file, token, onClose }) {
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
 
-  const filename = file?.filename || 'document';
+  const filename = file?.filename || file?.name || 'document';
+  const filesize = file?.filesize || file?.size || 0;
   const lowerName = filename.toLowerCase();
   const isPdf = lowerName.endsWith('.pdf') || file?.mimetype?.includes('pdf');
   const isImage =
@@ -39,6 +40,21 @@ export default function DocumentViewerModal({ file, token, onClose }) {
     let createdUrl = null;
 
     async function loadFile() {
+      // پشتیبانی از فایل‌های محلی (Local File / Blob)
+      if (file instanceof File || file?.blob) {
+        const targetBlob = file instanceof File ? file : file.blob;
+        createdUrl = URL.createObjectURL(targetBlob);
+        setBlobUrl(createdUrl);
+        setLoading(false);
+        return;
+      }
+
+      if (file?.fileurl && file.fileurl.startsWith('blob:')) {
+        setBlobUrl(file.fileurl);
+        setLoading(false);
+        return;
+      }
+
       if (!file?.fileurl) {
         setError('پیوند فایل یافت نشد.');
         setLoading(false);
@@ -114,10 +130,19 @@ export default function DocumentViewerModal({ file, token, onClose }) {
   }, [file, token]);
 
   const handleDownload = async () => {
-    if (downloading || !file?.fileurl) return;
+    if (downloading) return;
     setDownloading(true);
     try {
-      await downloadMoodleFile(file.fileurl, filename, token);
+      if (blobUrl) {
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else if (file?.fileurl) {
+        await downloadMoodleFile(file.fileurl, filename, token);
+      }
     } catch (err) {
       console.error('Download error:', err);
     } finally {
@@ -168,15 +193,15 @@ export default function DocumentViewerModal({ file, token, onClose }) {
                 )}
               </div>
               <div className="min-w-0">
-                <h3 className="font-black text-xs sm:text-sm text-base-content truncate" title={filename}>
+                <h3 className="font-black text-xs sm:text-sm text-base-content truncate dir-ltr text-right" dir="ltr" title={filename}>
                   {cleanPersianText(filename)}
                 </h3>
                 <div className="flex items-center gap-2 text-[10px] text-neutral">
                   <span>پیش‌نمایش درون‌برنامه‌ای</span>
-                  {file?.filesize ? (
+                  {filesize ? (
                     <>
                       <span>•</span>
-                      <span className="font-mono">{formatFileSizeFa(file.filesize)}</span>
+                      <span className="font-mono">{formatFileSizeFa(filesize)}</span>
                     </>
                   ) : null}
                 </div>
