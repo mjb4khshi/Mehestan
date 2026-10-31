@@ -310,19 +310,20 @@ export default function AssignmentsScreen() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs text-neutral pt-2 border-t border-base-500/20">
-                      <span className="flex items-center gap-1.5 text-[11px]">
-                        <Clock className="w-3.5 h-3.5 text-neutral" />
-                        <span>{formatPersianDate(a.duedate)}</span>
+                    <div className="flex items-center justify-between text-xs text-neutral pt-2 border-t border-base-500/20 gap-2 flex-nowrap">
+                      {/* بج سافت زمان همرنگ با درس */}
+                      <span className={`flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap shrink-0 border ${toneStyle.bgSoft} ${toneStyle.text} ${toneStyle.border}`}>
+                        <Clock className="w-3 h-3 shrink-0" />
+                        <span className="whitespace-nowrap">{formatPersianDate(a.duedate)}</span>
                       </span>
 
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${timing.badgeBg}`}>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${timing.badgeBg}`}>
                           {timing.text}
                         </span>
-                        <div className="flex items-center gap-1 text-primary font-bold text-[11px] group-hover:translate-x-[-2px] transition-transform">
+                        <div className="flex items-center gap-0.5 text-primary font-bold text-[11px] group-hover:translate-x-[-2px] transition-transform whitespace-nowrap shrink-0">
                           <span>مشاهده و ارسال</span>
-                          <ChevronLeft className="w-3.5 h-3.5" />
+                          <ChevronLeft className="w-3.5 h-3.5 shrink-0" />
                         </div>
                       </div>
                     </div>

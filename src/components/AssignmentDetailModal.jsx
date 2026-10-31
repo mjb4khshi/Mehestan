@@ -40,7 +40,7 @@ import {
   getMoodleFileUrl,
   downloadMoodleFile,
 } from '../services/moodle/api';
-import { exportAssignmentToSarvestan } from '../services/sarvestanBridge';
+import { exportAssignmentToSarvestan, getToneForCourse, TONE_STYLES } from '../services/sarvestanBridge';
 import DocumentViewerModal from './DocumentViewerModal';
 import { convertImagesToPdf } from '../utils/imageToPdf';
 import {
@@ -54,6 +54,8 @@ import {
 } from '../utils/persianUtils';
 
 export default function AssignmentDetailModal({ assignment, onClose, onSubmitted }) {
+  const courseTone = getToneForCourse(assignment?.courseName || assignment?.courseShortName || assignment?.course);
+  const courseToneStyle = TONE_STYLES[courseTone] || TONE_STYLES.primary;
   const { session, siteInfo } = useMoodleAuth();
   const [submissionStatus, setSubmissionStatus] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -314,13 +316,13 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 24 }}
           transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-          className="sarv-card relative z-10 w-full max-w-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-base-500/40 bg-base text-base-content"
+          className={`sarv-card relative z-10 w-full max-w-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-base-500/40 bg-base text-base-content border-r-4 ${courseToneStyle.borderRight}`}
         >
           {/* سربرگ پنجره */}
           <div className="p-4 border-b border-base-500/20 flex items-center justify-between gap-3 bg-base-500/10">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/25">
+                <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${courseToneStyle.bgSoft} ${courseToneStyle.text} ${courseToneStyle.border}`}>
                   {cleanCourseName(assignment.courseName || assignment.courseShortName)}
                 </span>
                 {Boolean(assignment.id) && (

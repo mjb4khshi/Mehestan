@@ -377,9 +377,9 @@ export default function TopBar({ title, onBack, showBack = false }) {
                               {formatNotifTime(n.timecreated)}
                             </span>
                           </div>
-                          {n.text && (
+                          {Boolean(n.text || n.fullmessage || n.smallmessage) && (
                             <p className="text-[11px] text-neutral/90 leading-relaxed break-words whitespace-pre-wrap">
-                              {cleanNotificationText(n.text)}
+                              {cleanNotificationText(n.text || n.fullmessage || n.smallmessage)}
                             </p>
                           )}
                         </div>

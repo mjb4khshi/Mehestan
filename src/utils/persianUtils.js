@@ -74,12 +74,15 @@ export function stripHtml(input) {
 export function cleanNotificationText(raw) {
   if (!raw) return '';
   let str = String(raw);
-  str = str.replace(/&lt;\/?br\s*\/?&gt;/gi, '\n');
+  str = str.replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/&amp;/gi, '&').replace(/&quot;/gi, '"');
   str = str.replace(/<\/?br\s*\/?>/gi, '\n');
+  str = str.replace(/<\/p>/gi, '\n');
+  str = str.replace(/<\/div>/gi, '\n');
   str = str.replace(/<[^>]+>/g, '');
   // حذف لینک‌های بلند سیستم بینش‌های مودل و پارامترهای رهگیری
   str = str.replace(/https?:\/\/[^\s]+report\/insights\/[^\s]*/gi, '');
   str = str.replace(/(?:Useful|مفید|غیرمفید|Not useful)\s*:?\s*https?:\/\/[^\s]*/gi, '');
+  str = str.replace(/(?:Useful|مفید|غیرمفید|Not useful)\s*:?/gi, '');
   str = str.replace(/https?:\/\/[^\s]*/gi, '');
   return cleanPersianText(str, true);
 }
@@ -288,14 +291,15 @@ export function formatAssignmentTiming(dueTimestamp, submissionTimestamp = null,
     const overdue = Math.abs(remaining);
     const days = Math.floor(overdue / 86400);
     const hours = Math.floor((overdue % 86400) / 3600);
+    const mins = Math.floor((overdue % 3600) / 60);
 
     let overdueStr = '';
-    if (days > 0 && hours > 0) {
-      overdueStr = `${toFaDigits(days)} روز و ${toFaDigits(hours)} ساعت پیش`;
-    } else if (days > 0) {
+    if (days > 0) {
       overdueStr = `${toFaDigits(days)} روز پیش`;
+    } else if (hours > 0) {
+      overdueStr = `${toFaDigits(hours)} ساعت پیش`;
     } else {
-      overdueStr = `${toFaDigits(Math.max(hours, 1))} ساعت پیش`;
+      overdueStr = `${toFaDigits(Math.max(mins, 1))} دقیقه پیش`;
     }
 
     return {
@@ -304,8 +308,8 @@ export function formatAssignmentTiming(dueTimestamp, submissionTimestamp = null,
       isEarly: false,
       isExpired: true,
       isPending: false,
-      colorClass: 'text-error',
-      badgeBg: 'bg-error/15 text-error border-error/30',
+      colorClass: 'text-rose-600 dark:text-rose-400',
+      badgeBg: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30',
     };
   }
 
@@ -315,11 +319,11 @@ export function formatAssignmentTiming(dueTimestamp, submissionTimestamp = null,
 
   let remStr = '';
   if (days > 0) {
-    remStr = `${toFaDigits(days)} روز و ${toFaDigits(hours)} ساعت باقی‌مانده`;
+    remStr = `${toFaDigits(days)} روز باقی‌مانده`;
   } else if (hours > 0) {
-    remStr = `${toFaDigits(hours)} ساعت و ${toFaDigits(mins)} دقیقه باقی‌مانده`;
+    remStr = `${toFaDigits(hours)} ساعت باقی‌مانده`;
   } else {
-    remStr = `${toFaDigits(mins)} دقیقه باقی‌مانده`;
+    remStr = `${toFaDigits(Math.max(mins, 1))} دقیقه باقی‌مانده`;
   }
 
   const isDueSoon = remaining < 86400 * 2; // کمتر از ۲ روز
@@ -330,9 +334,9 @@ export function formatAssignmentTiming(dueTimestamp, submissionTimestamp = null,
     isEarly: false,
     isExpired: false,
     isPending: true,
-    colorClass: isDueSoon ? 'text-amber-500' : 'text-primary',
+    colorClass: isDueSoon ? 'text-amber-600 dark:text-amber-400' : 'text-primary',
     badgeBg: isDueSoon
-      ? 'bg-amber-500/15 text-amber-500 border-amber-500/30'
+      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
       : 'bg-primary/15 text-primary border-primary/30',
   };
 }
