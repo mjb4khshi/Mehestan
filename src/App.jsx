@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useMoodleAuth } from './context/MoodleAuthContext';
 import { checkAndDispatchMoodleNotifications } from './services/moodleNotifications';
@@ -88,10 +88,67 @@ export default function App() {
     setActiveTab(nextTab);
   };
 
+  // ژست حرکتی سوایپ بین تب‌ها و منوها (دقیقاً مشابه سروستان)
+  const pointerStartRef = useRef(null);
+
+  const isNoSwipeElement = (target) => {
+    if (!target || typeof target.closest !== 'function') return false;
+    return Boolean(
+      target.closest(
+        'input, textarea, select, [data-no-swipe], .no-swipe, .overflow-x-auto, table, [role="slider"], button, a'
+      )
+    );
+  };
+
+  const handlePointerDown = (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    if (isNoSwipeElement(e.target)) return;
+    pointerStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      time: Date.now(),
+    };
+  };
+
+  const handlePointerUp = (e) => {
+    if (!pointerStartRef.current) return;
+    const { x: startX, y: startY, time: startTime } = pointerStartRef.current;
+    pointerStartRef.current = null;
+
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    const elapsed = Date.now() - startTime;
+
+    if (elapsed > 450) return;
+    if (Math.abs(dx) < 35 || Math.abs(dx) <= Math.abs(dy) * 1.3) return;
+
+    if (selectedCourse) return;
+
+    const currentIndex = TABS_ORDER.indexOf(activeTab);
+    if (currentIndex < 0) return;
+
+    // کشیدن انگشت به راست (dx > 0): رفتن به تب بعدی در منو
+    // کشیدن انگشت به چپ (dx < 0): رفتن به تب قبلی در منو
+    if (dx > 0 && currentIndex < TABS_ORDER.length - 1) {
+      handleChangeTab(TABS_ORDER[currentIndex + 1]);
+    } else if (dx < 0 && currentIndex > 0) {
+      handleChangeTab(TABS_ORDER[currentIndex - 1]);
+    }
+  };
+
+  const handlePointerCancel = () => {
+    pointerStartRef.current = null;
+  };
+
   return (
-    <div className="min-h-full bg-base text-base-content selection:bg-primary/30 selection:text-primary">
-      <div className="lg:flex lg:justify-center lg:items-stretch lg:gap-4 lg:px-4">
-        <div className="mobile-shell min-h-screen relative flex flex-col justify-between">
+    <div className="min-h-full bg-base text-base-content selection:bg-primary/30 selection:text-primary overflow-x-hidden w-full max-w-full">
+      <div className="lg:flex lg:justify-center lg:items-stretch lg:gap-4 lg:px-4 w-full overflow-x-hidden">
+        <div
+          className="mobile-shell min-h-screen relative flex flex-col justify-between overflow-x-hidden w-full max-w-[430px] md:max-w-[560px]"
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
+        >
           <TopBar
             title={selectedCourse ? cleanCourseName(selectedCourse.fullname) : null}
             showBack={Boolean(selectedCourse)}

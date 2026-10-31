@@ -18,7 +18,7 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
 import { getNotifications } from '../services/moodle/api';
-import { cleanPersianText, toFaDigits, stripHtml } from '../utils/persianUtils';
+import { cleanPersianText, toFaDigits, stripHtml, getShortUniversityName } from '../utils/persianUtils';
 
 export default function TopBar({ title, onBack, showBack = false }) {
   const { theme, setTheme, themes, isDark, activeThemeMeta } = useTheme();
@@ -97,7 +97,7 @@ export default function TopBar({ title, onBack, showBack = false }) {
       >
         <div className="mx-auto max-w-[430px] md:max-w-[560px] lg:max-w-none h-14 flex items-center justify-between gap-2 px-3">
           {/* سمت راست: نشان مهستان یا دکمه بازگشت و عنوان */}
-          <div className="flex items-center gap-2.5 shrink-0 min-w-0">
+          <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0">
               {showBack ? (
                 <button
@@ -136,8 +136,8 @@ export default function TopBar({ title, onBack, showBack = false }) {
                   </>
                 )}
               </h1>
-              <span className="text-[10px] text-neutral truncate">
-                {title ? 'سامانه یادگیری الکترونیکی' : (siteInfo?.sitename || 'دانشگاه صنعتی خواجه نصیرالدین طوسی')}
+              <span className="text-[10px] text-neutral truncate max-w-[180px] sm:max-w-xs block font-medium">
+                {title ? 'سامانه یادگیری' : getShortUniversityName(siteInfo?.sitename)}
               </span>
             </div>
           </div>

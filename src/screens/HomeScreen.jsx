@@ -30,7 +30,7 @@ export default function HomeScreen({ onSelectCourse, onGoToAssignments }) {
   const displayName = cleanPersianText(siteInfo?.fullname) || 'دانشجوی گرامی';
 
   return (
-    <div className="p-3.5 sm:p-4 space-y-4 max-w-2xl mx-auto min-w-0">
+    <div className="p-3.5 sm:p-4 space-y-4 max-w-2xl mx-auto w-full min-w-0 overflow-x-hidden">
       {/* هیرو کارت هویت دانشجو — سبک دقیق ردیفی سروستان (PROFILE_CARD_LAYOUT = 'row') */}
       <section className="sarv-card p-4 sm:p-5 border border-base-500/50 relative overflow-hidden shadow-sm">
         <div className="w-full flex items-stretch gap-3.5">
@@ -149,22 +149,22 @@ export default function HomeScreen({ onSelectCourse, onGoToAssignments }) {
             درسی در سامانه مودل یافت نشد یا در حال بارگذاری است.
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full min-w-0">
             {courses.map((course) => (
               <div
                 key={course.id}
                 onClick={() => onSelectCourse && onSelectCourse(course)}
-                className="sarv-card p-4 hover:border-primary/50 transition cursor-pointer space-y-3 group shadow-sm"
+                className="sarv-card p-4 hover:border-primary/50 transition cursor-pointer space-y-3 group shadow-sm min-w-0 overflow-hidden"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/25">
+                <div className="flex items-start justify-between gap-2 min-w-0">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/25 shrink-0">
                     {cleanCourseCode(course.shortname)}
                   </span>
-                  {course.progress !== undefined && (
-                    <span className="text-[10px] font-mono text-neutral">
-                      {toFaDigits(course.progress)}٪
+                  {typeof course.progress === 'number' && !isNaN(course.progress) && course.progress > 0 ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary-soft text-secondary shrink-0 font-mono">
+                      {toFaDigits(Math.round(course.progress))}٪
                     </span>
-                  )}
+                  ) : null}
                 </div>
 
                 <div className="space-y-1">

@@ -404,7 +404,7 @@ export default function CourseDetailScreen({ course, onBack }) {
   });
 
   return (
-    <div className="p-3.5 sm:p-4 space-y-4 max-w-2xl mx-auto min-w-0">
+    <div className="p-3.5 sm:p-4 space-y-4 max-w-2xl mx-auto w-full min-w-0 overflow-x-hidden">
       {/* سربرگ درس با نشان و عنوان */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}

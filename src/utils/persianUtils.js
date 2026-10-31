@@ -23,14 +23,16 @@ export function toFaNumber(num) {
 }
 
 /**
- * اصلاح حروف عربی (ي و ك) به فارسی (ی و ک) و پاکسازی کاراکترهای مخفی و فاصله‌های نامتعارف
+ * اصلاح حروف عربی (ي، ى، ك) به فارسی اصیل (ی، ک)، استانداردسازی ارقام و فاصله‌های نامتعارف
  */
 export function cleanPersianText(str) {
   if (!str) return '';
   return String(str)
-    .replace(/ي/g, 'ی')
-    .replace(/ك/g, 'ک')
-    .replace(/ة/g, 'ه')
+    .replace(/[\u064A\u0649\u06D2]/g, 'ی') // تبدیل تمام ی‌های عربی و الف مقصوره به ی استاندارد فارسی
+    .replace(/\u0643/g, 'ک') // تبدیل ک عربی به ک فارسی
+    .replace(/\u0629/g, 'ه') // تبدیل ة به ه
+    .replace(/[\u0660-\u0669]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d.charCodeAt(0) - 0x0660]) // تبدیل ارقام عربی به ارقام فارسی
+    .replace(/[0-9]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]) // تبدیل ارقام انگلیسی به فارسی
     .replace(/[\u200B-\u200D\uFEFF]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -59,16 +61,39 @@ export function stripHtml(input) {
 }
 
 /**
+ * دریافت نام کوتاه و تمیز دانشگاه بدون پیشوندهای طولانی سامانه
+ */
+export function getShortUniversityName(sitename) {
+  if (!sitename) return 'دانشگاه خواجه نصیر';
+  let clean = cleanPersianText(sitename);
+  if (clean.includes('خواجه نصیر')) return 'دانشگاه خواجه نصیر';
+  if (clean.includes('تهران')) return 'دانشگاه تهران';
+  if (clean.includes('بهشتی')) return 'دانشگاه شهید بهشتی';
+  if (clean.includes('امیرکبیر')) return 'دانشگاه امیرکبیر';
+  if (clean.includes('شریف')) return 'دانشگاه صنعتی شریف';
+  if (clean.includes('علم و صنعت')) return 'دانشگاه علم و صنعت';
+  if (clean.includes('فردوسی')) return 'دانشگاه فردوسی مشهد';
+  if (clean.includes('شیراز')) return 'دانشگاه شیراز';
+  if (clean.includes('اصفهان')) return 'دانشگاه اصفهان';
+  if (clean.includes('تبریز')) return 'دانشگاه تبریز';
+
+  clean = clean
+    .replace(/سامانه\s*(آموزش\s*مجازی\s*و\s*الکترونیکی|آموزش\s*الکترونیکی|یادگیری\s*الکترونیکی|آموزش\s*مجازی|مودل)?/g, '')
+    .replace(/\(.*?\)/g, '')
+    .trim();
+
+  return clean.slice(0, 24) || 'دانشگاه خواجه نصیر';
+}
+
+/**
  * پاکسازی و استانداردسازی کد درس دانشگاهی
- * حذف براکت‌ها و پرانتزها، تبدیل به ارقام فارسی و افزودن پیشوند «کد» در صورت نیاز
+ * حذف کامل براکت‌ها، اصلاح حروف عربی (ی و ک) و تبدیل به ارقام فارسی
  */
 export function cleanCourseCode(code) {
   if (!code) return '';
-  let str = String(code).replace(/[\[\]\(\)]/g, '').trim();
+  let str = cleanPersianText(String(code));
+  str = str.replace(/[\[\]\(\)]/g, '').trim();
   str = toFaDigits(str);
-  if (/^[\u06F0-\u06F90-9]+$/.test(str)) {
-    return `کد ${str}`;
-  }
   return str;
 }
 
