@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Download,
@@ -124,28 +125,38 @@ export default function DocumentViewerModal({ file, token, onClose }) {
     }
   };
 
-  return (
+  const modalNode = (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5">
-        {/* پس‌زمینه نیمه‌شفاف */}
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5">
+        {/* پس‌زمینه تیره و مات کامل */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 bg-black/80 backdrop-blur-md"
         />
 
-        {/* بدنه مودال پیش‌نمایش */}
+        {/* بدنه مودال پیش‌نمایش کاملاً مات و غیرشفاف */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-          className="relative w-full max-w-4xl h-[88vh] max-h-[850px] bg-base-100 rounded-3xl shadow-2xl border border-base-500/25 flex flex-col overflow-hidden z-10"
+          style={{
+            backgroundColor: 'var(--theme-color-base, #ffffff)',
+            color: 'var(--theme-color-base-content, #0f172a)',
+          }}
+          className="relative w-full max-w-4xl h-[88vh] max-h-[850px] rounded-3xl shadow-2xl border border-base-500/40 flex flex-col overflow-hidden z-10"
         >
-          {/* هدر پیش‌نمایش */}
-          <div className="p-3.5 sm:p-4 border-b border-base-500/20 bg-base-500/10 flex items-center justify-between gap-3">
+          {/* هدر پیش‌نمایش مات */}
+          <div
+            style={{
+              backgroundColor:
+                'color-mix(in oklab, var(--theme-color-base-500, #cbd5e1) 22%, var(--theme-color-base, #ffffff))',
+            }}
+            className="p-3.5 sm:p-4 border-b border-base-500/30 flex items-center justify-between gap-3 shrink-0"
+          >
             <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <div className="w-9 h-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
                 {isImage ? (
@@ -227,8 +238,14 @@ export default function DocumentViewerModal({ file, token, onClose }) {
             </div>
           </div>
 
-          {/* بدنه محتوای سند */}
-          <div className="flex-1 overflow-hidden relative flex items-center justify-center bg-base-500/5 p-2 sm:p-4">
+          {/* بدنه محتوای سند کاملاً مات و غیرشفاف */}
+          <div
+            style={{
+              backgroundColor:
+                'color-mix(in oklab, var(--theme-color-base-500, #cbd5e1) 12%, var(--theme-color-base, #ffffff))',
+            }}
+            className="flex-1 overflow-hidden relative flex items-center justify-center p-2 sm:p-4"
+          >
             {loading ? (
               <div className="flex flex-col items-center justify-center gap-2.5 text-neutral text-xs">
                 <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -296,4 +313,10 @@ export default function DocumentViewerModal({ file, token, onClose }) {
       </div>
     </AnimatePresence>
   );
+
+  if (typeof document !== 'undefined') {
+    return createPortal(modalNode, document.body);
+  }
+
+  return modalNode;
 }
