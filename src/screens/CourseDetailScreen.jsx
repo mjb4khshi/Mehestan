@@ -6,6 +6,7 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
   Loader2,
   CheckSquare,
   Folder,
@@ -28,6 +29,7 @@ import {
   Layers,
   Sparkles,
   Search,
+  X,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -40,6 +42,7 @@ import {
   addDiscussionPost,
   updateActivityCompletion,
   getCourseCompletion,
+  sendMoodleMessage,
 } from '../services/moodle/api';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
 import AssignmentDetailModal from '../components/AssignmentDetailModal';
@@ -71,6 +74,12 @@ export default function CourseDetailScreen({ course, onBack }) {
   const [participants, setParticipants] = useState([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [participantRoleFilter, setParticipantRoleFilter] = useState('all');
+  const [participantSearch, setParticipantSearch] = useState('');
+  const [directMsgUser, setDirectMsgUser] = useState(null);
+  const [directMsgText, setDirectMsgText] = useState('');
+  const [directMsgSending, setDirectMsgSending] = useState(false);
+  const [directMsgSuccess, setDirectMsgSuccess] = useState('');
+  const [directMsgError, setDirectMsgError] = useState('');
 
   // داده‌های تالارهای گفتگو
   const [forums, setForums] = useState([]);
@@ -312,9 +321,40 @@ export default function CourseDetailScreen({ course, onBack }) {
     }
   };
 
+  const handleSendDirectMessage = async (e) => {
+    e.preventDefault();
+    if (!directMsgText.trim() || !directMsgUser || directMsgSending) return;
+    setDirectMsgSending(true);
+    setDirectMsgError('');
+    try {
+      await sendMoodleMessage(session.siteUrl, session.token, directMsgUser.id, directMsgText.trim());
+      setDirectMsgSuccess('پیام شما با موفقیت ارسال شد.');
+      setDirectMsgText('');
+      setTimeout(() => {
+        setDirectMsgSuccess('');
+        setDirectMsgUser(null);
+      }, 1800);
+    } catch (err) {
+      console.error('Failed to send direct message:', err);
+      setDirectMsgError(err.message || 'خطا در ارسال پیام مستقیم به کاربر');
+    } finally {
+      setDirectMsgSending(false);
+    }
+  };
+
   const filteredParticipants = participants.filter((p) => {
-    if (participantRoleFilter === 'all') return true;
-    return p.roleType === participantRoleFilter;
+    if (participantRoleFilter !== 'all' && p.roleType !== participantRoleFilter) {
+      return false;
+    }
+    if (participantSearch.trim()) {
+      const q = participantSearch.trim().toLowerCase();
+      const nameMatch = p.fullname?.toLowerCase().includes(q);
+      const deptMatch = p.department?.toLowerCase().includes(q);
+      const emailMatch = p.email?.toLowerCase().includes(q);
+      const roleMatch = p.roleName?.toLowerCase().includes(q);
+      return Boolean(nameMatch || deptMatch || emailMatch || roleMatch);
+    }
+    return true;
   });
 
   return (
@@ -640,30 +680,48 @@ export default function CourseDetailScreen({ course, onBack }) {
       {/* تب ۳: هم‌کلاسی‌ها و اساتید (Participants) */}
       {activeTab === 'participants' && (
         <div className="space-y-3">
-          {/* فیلتر نقش‌ها */}
-          <div className="sarv-card p-2 flex items-center justify-between text-xs gap-1">
-            <span className="text-neutral font-bold text-[11px] mr-1">فیلتر:</span>
-            <div className="flex items-center gap-1">
-              {[
-                { id: 'all', label: 'همه' },
-                { id: 'teacher', label: 'اساتید' },
-                { id: 'ta', label: 'دستیاران (TA)' },
-                { id: 'student', label: 'دانشجویان' },
-              ].map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setParticipantRoleFilter(f.id)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                    participantRoleFilter === f.id
-                      ? 'bg-primary text-primary-content shadow-sm'
-                      : 'text-neutral hover:bg-base-500/20'
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
+          {/* کادر جستجوی پیشرفته هم‌کلاسی‌ها و اساتید */}
+          <div className="relative">
+            <Search className="w-4 h-4 text-neutral absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={participantSearch}
+              onChange={(e) => setParticipantSearch(e.target.value)}
+              placeholder="جستجوی نام هم‌کلاسی، استاد، دستیار یا رشته..."
+              className="w-full pr-9 pl-4 py-2.5 rounded-xl bg-base-500/20 border border-base-500/35 text-xs text-base-content placeholder:text-neutral/60 focus:outline-none focus:border-primary transition"
+            />
+            {participantSearch && (
+              <button
+                type="button"
+                onClick={() => setParticipantSearch('')}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 p-1 text-neutral hover:text-base-content"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* فیلتر نقش‌ها سبک سروستان */}
+          <div className="sarv-seg text-xs">
+            {[
+              { id: 'all', label: 'همه' },
+              { id: 'teacher', label: 'اساتید' },
+              { id: 'ta', label: 'دستیاران (TA)' },
+              { id: 'student', label: 'دانشجویان' },
+            ].map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setParticipantRoleFilter(f.id)}
+                className={`py-1.5 px-2 rounded-xl text-[11px] font-bold transition cursor-pointer ${
+                  participantRoleFilter === f.id
+                    ? 'bg-primary text-primary-content shadow-sm'
+                    : 'text-neutral hover:text-base-content'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
 
           {loadingParticipants ? (
@@ -673,7 +731,7 @@ export default function CourseDetailScreen({ course, onBack }) {
             </div>
           ) : filteredParticipants.length === 0 ? (
             <div className="sarv-card p-8 text-center text-xs text-neutral">
-              فردی در این دسته‌بندی یافت نشد.
+              فردی در این جستجو یا دسته‌بندی یافت نشد.
             </div>
           ) : (
             <div className="space-y-2">
@@ -683,9 +741,9 @@ export default function CourseDetailScreen({ course, onBack }) {
                 return (
                   <div
                     key={user.id}
-                    className="sarv-card p-3.5 flex items-center justify-between gap-3"
+                    className="sarv-card p-3.5 flex items-center justify-between gap-3 shadow-sm"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div
                         className={`w-10 h-10 rounded-2xl grid place-items-center font-black text-xs shrink-0 ${
                           isTeacher
@@ -698,8 +756,8 @@ export default function CourseDetailScreen({ course, onBack }) {
                         {cleanPersianText(user.fullname).charAt(0)}
                       </div>
 
-                      <div className="space-y-0.5 min-w-0">
-                        <div className="flex items-center gap-1.5">
+                      <div className="space-y-0.5 min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <h4 className="text-xs font-black text-base-content truncate">
                             {cleanPersianText(user.fullname)}
                           </h4>
@@ -723,15 +781,33 @@ export default function CourseDetailScreen({ course, onBack }) {
                       </div>
                     </div>
 
-                    {user.email && (
-                      <a
-                        href={`mailto:${user.email}`}
-                        className="p-2 rounded-xl text-neutral hover:text-primary hover:bg-base-500/20 transition cursor-pointer shrink-0"
-                        title={`ارسال ایمیل به ${user.fullname}`}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {/* دکمه ارسال پیام مستقیم در دایرکت مودل */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDirectMsgUser(user);
+                          setDirectMsgText('');
+                          setDirectMsgError('');
+                          setDirectMsgSuccess('');
+                        }}
+                        className="px-2.5 py-1.5 rounded-xl bg-primary-soft text-primary hover:bg-primary/20 border border-primary/25 transition cursor-pointer flex items-center gap-1 text-[11px] font-bold active:scale-95 shadow-sm"
+                        title={`ارسال پیام مستقیم به ${cleanPersianText(user.fullname)}`}
                       >
-                        <Mail className="w-4 h-4" />
-                      </a>
-                    )}
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">پیام مستقیم</span>
+                      </button>
+
+                      {user.email && (
+                        <a
+                          href={`mailto:${user.email}`}
+                          className="p-1.5 rounded-xl text-neutral hover:text-base-content hover:bg-base-500/20 transition cursor-pointer"
+                          title={`ارسال ایمیل به ${cleanPersianText(user.fullname)}`}
+                        >
+                          <Mail className="w-4 h-4" />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -897,6 +973,108 @@ export default function CourseDetailScreen({ course, onBack }) {
           onClose={() => setSelectedQuiz(null)}
         />
       )}
+
+      {/* مودال ارسال پیام مستقیم در دایرکت مودل */}
+      <AnimatePresence>
+        {directMsgUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !directMsgSending && setDirectMsgUser(null)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 20 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 350 }}
+              className="sarv-card relative z-10 w-full max-w-md p-5 space-y-4 shadow-2xl border border-base-500/40"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-base-500/20">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-9 h-9 rounded-2xl bg-primary/15 text-primary grid place-items-center font-bold text-sm shrink-0">
+                    {cleanPersianText(directMsgUser.fullname).charAt(0)}
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-xs font-black text-base-content truncate">
+                      ارسال پیام مستقیم به {cleanPersianText(directMsgUser.fullname)}
+                    </h3>
+                    <p className="text-[10px] text-neutral">
+                      {directMsgUser.roleName} {directMsgUser.department ? `· ${directMsgUser.department}` : ''}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={directMsgSending}
+                  onClick={() => setDirectMsgUser(null)}
+                  className="p-1 rounded-lg text-neutral hover:text-base-content cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {directMsgSuccess && (
+                <div className="p-3 rounded-xl bg-success-soft border border-success/30 text-success text-xs font-bold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{directMsgSuccess}</span>
+                </div>
+              )}
+
+              {directMsgError && (
+                <div className="p-3 rounded-xl bg-danger-soft border border-danger/30 text-danger text-xs font-bold">
+                  {directMsgError}
+                </div>
+              )}
+
+              <form onSubmit={handleSendDirectMessage} className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-neutral">متن پیام دانشگاهی:</label>
+                  <textarea
+                    value={directMsgText}
+                    onChange={(e) => setDirectMsgText(e.target.value)}
+                    disabled={directMsgSending}
+                    rows={4}
+                    placeholder="پیام، سوال درسی یا هماهنگی خود را بنویسید..."
+                    className="w-full p-3 rounded-xl bg-base-500/20 border border-base-500/40 text-xs text-base-content placeholder:text-neutral/60 focus:outline-none focus:border-primary transition resize-none leading-relaxed"
+                    required
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-base-500/20">
+                  <button
+                    type="button"
+                    disabled={directMsgSending}
+                    onClick={() => setDirectMsgUser(null)}
+                    className="px-3.5 py-2 rounded-xl text-neutral hover:bg-base-500/20 text-xs font-bold transition cursor-pointer"
+                  >
+                    انصراف
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={directMsgSending || !directMsgText.trim()}
+                    className="px-4 py-2 rounded-xl bg-primary text-primary-content text-xs font-black hover:brightness-110 active:scale-95 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-md"
+                  >
+                    {directMsgSending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>در حال ارسال...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        <span>ارسال پیام</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

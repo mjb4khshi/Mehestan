@@ -987,8 +987,16 @@ export async function getMoodleConversations(baseUrl, token, userId) {
     };
   }
 
+  let targetUserId = userId;
+  if (!targetUserId || targetUserId === 9999) {
+    try {
+      const info = await getSiteInfo(baseUrl, token);
+      if (info?.userid) targetUserId = info.userid;
+    } catch {}
+  }
+
   return await callMoodleWs(baseUrl, token, 'core_message_get_conversations', {
-    userid: userId,
+    userid: targetUserId,
   });
 }
 
@@ -1015,24 +1023,57 @@ export async function getConversationMessages(baseUrl, token, currentUserId, con
     };
   }
 
+  let targetUserId = currentUserId;
+  if (!targetUserId || targetUserId === 9999) {
+    try {
+      const info = await getSiteInfo(baseUrl, token);
+      if (info?.userid) targetUserId = info.userid;
+    } catch {}
+  }
+
   return await callMoodleWs(baseUrl, token, 'core_message_get_conversation_messages', {
-    currentuserid: currentUserId,
+    currentuserid: targetUserId,
     convid: conversationId,
   });
 }
 
 /**
- * ارسال پیام جدید در پیام‌رسان دانشگاه
+ * ارسال پیام جدید در پیام‌رسان دانشگاه (دایرکت مودل)
+ * با پشتیبانی از هر دو متد core_message_send_messages_to_conversation و core_message_send_instant_messages
  */
-export async function sendMoodleMessage(baseUrl, token, toUserId, text) {
+export async function sendMoodleMessage(baseUrl, token, toUserId, text, conversationId = null) {
   if (token && token.startsWith('demo_')) {
     return [{ msgid: Math.floor(Math.random() * 10000) + 900 }];
   }
 
-  return await callMoodleWs(baseUrl, token, 'core_message_send_instant_messages', {
+  // در صورت داشتن شناسه گفتگو ابتدا تلاش جهت ارسال در همان چت
+  if (conversationId) {
+    try {
+      const convRes = await callMoodleWs(baseUrl, token, 'core_message_send_messages_to_conversation', {
+        convid: conversationId,
+        'messages[0][text]': text,
+        'messages[0][textformat]': 1,
+      });
+      if (Array.isArray(convRes) && convRes[0]?.errormessage) {
+        throw new Error(convRes[0].errormessage);
+      }
+      return convRes;
+    } catch (e) {
+      console.warn('Fallback to core_message_send_instant_messages:', e);
+    }
+  }
+
+  const res = await callMoodleWs(baseUrl, token, 'core_message_send_instant_messages', {
     'messages[0][touserid]': toUserId,
     'messages[0][text]': text,
+    'messages[0][textformat]': 1,
   });
+
+  if (Array.isArray(res) && res[0]?.errormessage) {
+    throw new Error(res[0].errormessage);
+  }
+
+  return res;
 }
 
 /**

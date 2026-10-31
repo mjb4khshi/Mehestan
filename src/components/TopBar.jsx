@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Palette,
   Bell,
@@ -194,142 +196,198 @@ export default function TopBar({ title, onBack, showBack = false }) {
         </div>
       </header>
 
-      {/* شیت انتخابگر ۱۶ تم سروستان */}
-      {themeSheetOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="sarv-card w-full max-w-sm max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-base-500/30">
-            <div className="p-4 border-b border-base-500/20 flex items-center justify-between bg-base-500/10">
-              <div className="flex items-center gap-2">
-                <Palette className="w-4 h-4 text-primary" />
-                <h3 className="text-xs font-black text-base-content">پالت رنگی سروستان (۱۶ تم)</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setThemeSheetOpen(false)}
-                className="p-1 rounded-lg hover:bg-base-500/20 text-neutral"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {/* شیت انتخابگر تم‌های سروستان — دقیقا مطابق Sarvestan Bottom Sheet */}
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            {themeSheetOpen && (
+              <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center">
+                {/* Backdrop */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setThemeSheetOpen(false)}
+                  className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                />
 
-            <div className="p-3 overflow-y-auto space-y-1.5 flex-1 text-xs">
-              {themes.map((t) => {
-                const isSelected = theme === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => {
-                      setTheme(t.id);
-                      setThemeSheetOpen(false);
-                    }}
-                    className={`w-full p-2.5 rounded-xl border flex items-center justify-between transition cursor-pointer ${
-                      isSelected
-                        ? 'border-primary bg-primary/10 shadow-sm'
-                        : 'border-base-500/20 hover:border-base-500/50 hover:bg-base-500/10'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex items-center -space-x-1">
-                        <span
-                          className="w-4 h-4 rounded-full border border-black/20 z-10"
-                          style={{ backgroundColor: t.primary }}
-                        />
-                        <span
-                          className="w-4 h-4 rounded-full border border-black/20"
-                          style={{ backgroundColor: t.base }}
-                        />
+                {/* Sheet Panel */}
+                <motion.div
+                  initial={{ y: '100%', opacity: 0.5 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: '100%', opacity: 0.5 }}
+                  transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+                  className="relative z-10 w-full max-w-[430px] rounded-t-3xl sm:rounded-3xl bg-base border border-base-500/50 p-5 shadow-2xl max-h-[85vh] flex flex-col"
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-base-500/30">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-primary/15 text-primary grid place-items-center">
+                        <Palette className="w-4 h-4" />
                       </div>
-                      <span className={`font-bold ${isSelected ? 'text-primary' : 'text-base-content'}`}>
-                        {t.persianName}
-                      </span>
+                      <div>
+                        <h3 className="text-[15px] font-bold text-base-content">پالت‌های رنگی سرو</h3>
+                        <p className="text-[11px] text-neutral">تم ظاهر برنامه را به سلیقه خود انتخاب کنید</p>
+                      </div>
                     </div>
-
-                    {isSelected && <Check className="w-4 h-4 text-primary" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* شیت اعلان‌های رسمی مودل و مشخصات کاربر */}
-      {notifySheetOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="sarv-card w-full max-w-sm max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-base-500/30">
-            <div className="p-4 border-b border-base-500/20 flex items-center justify-between bg-base-500/10">
-              <div className="flex items-center gap-2">
-                <Bell className="w-4 h-4 text-primary" />
-                <h3 className="text-xs font-black text-base-content">اعلان‌ها و رویدادهای دانشگاه</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setNotifySheetOpen(false)}
-                className="p-1 rounded-lg hover:bg-base-500/20 text-neutral cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="p-4 space-y-3 overflow-y-auto flex-1 text-xs">
-              <div className="p-3 rounded-xl bg-primary-soft border border-primary-soft space-y-1">
-                <div className="flex items-center gap-2 text-primary font-bold">
-                  <GraduationCap className="w-4 h-4" />
-                  <span className="truncate">{cleanPersianText(siteInfo?.sitename || 'سامانه آموزش الکترونیکی')}</span>
-                </div>
-                <p className="text-[11px] text-neutral">
-                  دانشجو: <span className="font-bold text-base-content">{cleanPersianText(siteInfo?.fullname)}</span>
-                </p>
-                <p className="text-[10px] text-neutral font-mono">
-                  شماره دانشجویی: {toFaDigits(siteInfo?.username)}
-                </p>
-              </div>
-
-              {/* لیست اعلان‌ها */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-base-content text-[11px]">پیام‌ها و اطلاعیه‌های اخیر:</span>
-                  <span className="text-[10px] text-neutral">{toFaDigits(notifications.length)} مورد</span>
-                </div>
-
-                {loadingNotifications ? (
-                  <div className="flex items-center justify-center py-6 text-neutral gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                    <span>در حال دریافت اعلان‌ها...</span>
-                  </div>
-                ) : notifications.length > 0 ? (
-                  notifications.map((n) => (
-                    <div
-                      key={n.id}
-                      className="p-3 rounded-xl bg-base-500/15 border border-base-500/25 space-y-1.5"
+                    <button
+                      type="button"
+                      onClick={() => setThemeSheetOpen(false)}
+                      className="w-8 h-8 rounded-full bg-base-500/30 text-neutral hover:text-base-content grid place-items-center transition-colors cursor-pointer"
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="font-bold text-base-content text-[11px] leading-relaxed">
-                          {cleanPersianText(n.subject)}
-                        </h4>
-                        {n.unread && (
-                          <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1"></span>
-                        )}
-                      </div>
-                      <p className="text-[10px] text-neutral leading-relaxed">
-                        {cleanPersianText(n.text)}
-                      </p>
-                      <span className="text-[9px] text-neutral/70 block">
-                        {formatNotifTime(n.timecreated)}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="p-4 rounded-xl bg-base-500/10 text-center text-neutral text-[11px]">
-                    اعلانی برای نمایش وجود ندارد.
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                )}
+
+                  <div className="overflow-y-auto py-3 pb-8 space-y-1.5 flex-1 pr-1">
+                    {themes.map((t) => {
+                      const isSelected = theme === t.id;
+
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => {
+                            setTheme(t.id);
+                            setThemeSheetOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between p-3 rounded-2xl transition-all text-right border relative overflow-hidden select-none cursor-pointer ${
+                            isSelected
+                              ? 'bg-primary/12 border-primary/50 text-primary font-bold shadow-sm'
+                              : 'bg-base-500/15 border-base-500/30 text-base-content hover:bg-base-500/30'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 relative z-10">
+                            {/* پیش‌نمایش ۳ رنگ شاخص پالت */}
+                            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-base-500/20 border border-base-500/35 shrink-0 shadow-2xs">
+                              <span
+                                className="w-3.5 h-3.5 rounded-full border border-black/20 dark:border-white/20 shadow-2xs shrink-0"
+                                style={{ backgroundColor: t.primary }}
+                                title="رنگ اصلی"
+                              />
+                              <span
+                                className="w-3.5 h-3.5 rounded-full border border-black/20 dark:border-white/20 shadow-2xs shrink-0"
+                                style={{ backgroundColor: t.accent || t.primary }}
+                                title="رنگ مکمل"
+                              />
+                              <span
+                                className="w-3.5 h-3.5 rounded-full border border-black/20 dark:border-white/20 shadow-2xs shrink-0"
+                                style={{ backgroundColor: t.base }}
+                                title="رنگ زمینه"
+                              />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[13px] font-bold leading-tight">
+                                {t.persianName}
+                              </p>
+                              <p className="text-[10px] text-neutral mt-0.5">
+                                {t.mode === 'dark' ? 'حالت تاریک' : 'حالت روشن'} · {t.name}
+                              </p>
+                            </div>
+                          </div>
+                          {isSelected ? (
+                            <div className="w-6 h-6 rounded-full bg-primary text-primary-content grid place-items-center shrink-0 relative z-10">
+                              <Check className="w-3.5 h-3.5" />
+                            </div>
+                          ) : (
+                            <span className="text-[11px] font-mono text-neutral/60 relative z-10">
+                              انتخاب
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
+
+      {/* شیت اعلان‌های رسمی مودل — مطابق سبک سروستان */}
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            {notifySheetOpen && (
+              <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center">
+                {/* Backdrop */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setNotifySheetOpen(false)}
+                  className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                />
+
+                {/* Sheet Panel */}
+                <motion.div
+                  initial={{ y: '100%', opacity: 0.5 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: '100%', opacity: 0.5 }}
+                  transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+                  className="relative z-10 w-full max-w-[430px] rounded-t-3xl sm:rounded-3xl bg-base border border-base-500/50 p-5 shadow-2xl max-h-[85vh] flex flex-col"
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-base-500/30">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-primary/15 text-primary grid place-items-center">
+                        <Bell className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h3 className="text-[15px] font-bold text-base-content">اعلانات و پیام‌ها</h3>
+                        <p className="text-[11px] text-neutral">رویدادها و پیام‌های رسمی دانشگاه</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setNotifySheetOpen(false)}
+                      className="w-8 h-8 rounded-full bg-base-500/30 text-neutral hover:text-base-content grid place-items-center transition-colors cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="overflow-y-auto py-3 pb-8 space-y-2 flex-1 pr-1">
+                    {loadingNotifications ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-neutral space-y-2">
+                        <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                        <span className="text-xs">در حال دریافت اعلان‌ها از مودل...</span>
+                      </div>
+                    ) : notifications.length > 0 ? (
+                      notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          className="p-3.5 rounded-2xl bg-base-500/15 border border-base-500/30 space-y-1 hover:border-primary/40 transition"
+                        >
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-bold text-base-content text-xs flex items-center gap-1.5">
+                              {n.unread && <span className="w-2 h-2 rounded-full bg-primary" />}
+                              <span>{cleanPersianText(n.subject || 'اعلان مودل')}</span>
+                            </h4>
+                            <span className="text-[10px] text-neutral font-mono">
+                              {formatNotifTime(n.timecreated)}
+                            </span>
+                          </div>
+                          {n.text && (
+                            <p className="text-[11px] text-neutral/90 leading-relaxed break-words">
+                              {cleanPersianText(n.text)}
+                            </p>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-12 text-neutral space-y-1.5">
+                        <Bell className="w-8 h-8 mx-auto opacity-30" />
+                        <p className="font-bold text-xs">اعلانی برای نمایش وجود ندارد.</p>
+                        <p className="text-[10px]">رویدادهای جدید تحصیلی مودل در اینجا ثبت می‌شوند.</p>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
+      </>
   );
 }
