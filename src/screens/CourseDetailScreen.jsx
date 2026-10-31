@@ -32,6 +32,7 @@ import {
   X,
   Check,
   Eye,
+  Calendar,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -322,6 +323,12 @@ export default function CourseDetailScreen({ course, onBack }) {
     }
   };
 
+  const formatSectionTitle = (rawTitle) => {
+    if (!rawTitle) return 'سرفصل عمومی';
+    const clean = cleanPersianText(rawTitle);
+    return toFaDigits(clean).replace(/\s*-\s*/g, ' – ');
+  };
+
   const getFileIcon = (filename = '', mimetype = '') => {
     const lower = filename.toLowerCase();
     if (lower.endsWith('.pdf') || mimetype.includes('pdf')) {
@@ -475,21 +482,29 @@ export default function CourseDetailScreen({ course, onBack }) {
                   <button
                     type="button"
                     onClick={() => toggleSection(section.id)}
-                    className="w-full p-3.5 flex items-center justify-between text-right bg-base-500/10 hover:bg-base-500/20 transition cursor-pointer"
+                    className="w-full p-3 sm:p-3.5 flex items-center justify-between text-right bg-base-500/10 hover:bg-base-500/20 transition cursor-pointer"
                   >
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-xs font-black text-base-content truncate">
-                        {cleanPersianText(section.name || 'بخش عمومی')}
-                      </h3>
-                      {section.summary && (
-                        <div
-                          className="text-[10px] text-neutral mt-0.5 truncate"
-                          dangerouslySetInnerHTML={{ __html: cleanPersianText(section.summary) }}
-                        />
-                      )}
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
+                        <Calendar className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-xs font-black text-base-content truncate">
+                          {formatSectionTitle(section.name)}
+                        </h3>
+                        {section.summary && (
+                          <div
+                            className="text-[10px] text-neutral mt-0.5 truncate"
+                            dangerouslySetInnerHTML={{ __html: cleanPersianText(section.summary) }}
+                          />
+                        )}
+                      </div>
                     </div>
+
                     <div className="flex items-center gap-2 shrink-0 mr-2">
-                      <span className="text-[10px] text-neutral font-bold">{toFaDigits(modules.length)} مورد</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-base-500/20 text-neutral">
+                        {toFaDigits(modules.length)} آیتم
+                      </span>
                       <motion.div
                         animate={{ rotate: isExpanded ? 180 : 0 }}
                         transition={{ duration: 0.2 }}
@@ -506,7 +521,7 @@ export default function CourseDetailScreen({ course, onBack }) {
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
-                        className="overflow-hidden divide-y divide-base-500/15 p-2"
+                        className="overflow-hidden p-2.5 space-y-2 bg-base-500/5"
                       >
                         {modules.map((mod) => {
                           const isAssign = mod.modname === 'assign';
@@ -517,25 +532,81 @@ export default function CourseDetailScreen({ course, onBack }) {
                           const contentsList = mod.contents || [];
                           const isCompleted = Boolean(completionStatuses[mod.id]);
 
+                          // در صورتی که ماژول یک منبع تک‌فایل باشد (حالت ۹۰٪ مودل)، کارت یکپارچه و فشرده نمایش داده می‌شود
+                          if (isResource && contentsList.length === 1) {
+                            const file = contentsList[0];
+                            return (
+                              <div
+                                key={mod.id}
+                                className="p-3 rounded-2xl bg-base-100/60 hover:bg-base-100 border border-base-500/25 hover:border-primary/40 transition shadow-xs flex items-center justify-between gap-3 text-xs"
+                              >
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                  <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
+                                    {getFileIcon(file.filename, file.mimetype)}
+                                  </div>
+                                  <div className="min-w-0 flex-1 space-y-0.5">
+                                    <h4 className="font-bold text-base-content truncate" title={mod.name}>
+                                      {cleanPersianText(mod.name)}
+                                    </h4>
+                                    <div className="flex items-center gap-1.5 text-[10px] text-neutral truncate">
+                                      <span className="font-mono">{file.filename}</span>
+                                      <span>•</span>
+                                      <span className="font-mono">{formatFileSizeFa(file.filesize)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-1.5 shrink-0 mr-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewFile(file)}
+                                    className="px-2.5 py-1.5 rounded-xl bg-base-500/15 hover:bg-base-500/25 text-base-content text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+                                    title="پیش‌نمایش درون‌برنامه‌ای"
+                                  >
+                                    <Eye className="w-3.5 h-3.5 text-primary" />
+                                    <span className="hidden sm:inline">مشاهده</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleInAppDownload(file.fileurl, file.filename)}
+                                    disabled={downloadingUrl === file.fileurl}
+                                    className="px-2.5 py-1.5 rounded-xl bg-primary text-primary-content text-[11px] font-bold hover:brightness-110 active:scale-95 transition flex items-center gap-1 cursor-pointer disabled:opacity-50 shadow-xs"
+                                    title="دانلود مستقیم فایل"
+                                  >
+                                    {downloadingUrl === file.fileurl ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      <Download className="w-3.5 h-3.5" />
+                                    )}
+                                    <span className="hidden sm:inline">دانلود</span>
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          // برای سایر ماژول‌ها (تکلیف، کوییز، پیوند یا پوشه چندفایله):
                           return (
-                            <div key={mod.id} className="p-3 space-y-2">
-                              <div className="flex items-start justify-between gap-3 text-xs">
-                                <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                                  {/* آیکون نوع محتوا سبک مدرن سروستان به جای چک‌باکس خالی */}
-                                  <div className="relative shrink-0 mt-0.5">
+                            <div
+                              key={mod.id}
+                              className="p-3 rounded-2xl bg-base-100/60 hover:bg-base-100 border border-base-500/25 transition shadow-xs space-y-2.5"
+                            >
+                              <div className="flex items-center justify-between gap-3 text-xs">
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                  <div className="relative shrink-0">
                                     <div
-                                      className={`w-8 h-8 rounded-xl flex items-center justify-center transition ${
+                                      className={`w-9 h-9 rounded-xl flex items-center justify-center transition border ${
                                         isCompleted
-                                          ? 'bg-success/15 text-success'
+                                          ? 'bg-success/15 text-success border-success/30'
                                           : isAssign
-                                          ? 'bg-amber-500/15 text-amber-500'
+                                          ? 'bg-amber-500/15 text-amber-500 border-amber-500/30'
                                           : isQuiz
-                                          ? 'bg-purple-500/15 text-purple-500'
+                                          ? 'bg-purple-500/15 text-purple-500 border-purple-500/30'
                                           : isUrl
-                                          ? 'bg-blue-500/15 text-blue-500'
+                                          ? 'bg-blue-500/15 text-blue-500 border-blue-500/30'
                                           : isFolder
-                                          ? 'bg-primary/15 text-primary'
-                                          : 'bg-base-500/20 text-base-content'
+                                          ? 'bg-primary/15 text-primary border-primary/30'
+                                          : 'bg-base-500/20 text-base-content border-base-500/30'
                                       }`}
                                     >
                                       {getModuleTypeIcon(mod.modname)}
@@ -547,10 +618,10 @@ export default function CourseDetailScreen({ course, onBack }) {
                                     )}
                                   </div>
 
-                                  <div className="space-y-0.5 min-w-0 flex-1 pt-0.5">
-                                    <span className="font-bold leading-relaxed block text-base-content">
+                                  <div className="space-y-0.5 min-w-0 flex-1">
+                                    <h4 className="font-bold leading-relaxed text-base-content truncate">
                                       {cleanPersianText(mod.name)}
-                                    </span>
+                                    </h4>
                                     {mod.description && (
                                       <div
                                         className="text-[11px] text-neutral leading-relaxed line-clamp-2"
@@ -566,7 +637,7 @@ export default function CourseDetailScreen({ course, onBack }) {
                                       whileTap={{ scale: 0.94 }}
                                       type="button"
                                       onClick={() => handleOpenAssign(mod)}
-                                      className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-500 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+                                      className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-600 text-[11px] font-black transition flex items-center gap-1.5 cursor-pointer shadow-xs"
                                     >
                                       <Upload className="w-3.5 h-3.5" />
                                       <span>مشاهده و ارسال تکلیف</span>
@@ -576,7 +647,7 @@ export default function CourseDetailScreen({ course, onBack }) {
                                       whileTap={{ scale: 0.94 }}
                                       type="button"
                                       onClick={() => handleOpenQuiz(mod)}
-                                      className="px-2.5 py-1 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-500 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+                                      className="px-3 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-600 text-[11px] font-black transition flex items-center gap-1.5 cursor-pointer shadow-xs"
                                     >
                                       <HelpCircle className="w-3.5 h-3.5" />
                                       <span>ورود به آزمون (کوییز)</span>
@@ -586,63 +657,61 @@ export default function CourseDetailScreen({ course, onBack }) {
                                       href={mod.url}
                                       target="_blank"
                                       rel="noreferrer"
-                                      className="p-1.5 rounded-lg text-neutral hover:text-primary hover:bg-base-500/20 transition"
+                                      className="px-3 py-1.5 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 text-blue-600 text-[11px] font-black transition flex items-center gap-1.5 cursor-pointer shadow-xs"
                                       title="باز کردن پیوند خارجی"
                                     >
-                                      <ExternalLink className="w-4 h-4" />
+                                      <span>ورود به لینک</span>
+                                      <ExternalLink className="w-3.5 h-3.5" />
                                     </a>
                                   ) : null}
                                 </div>
                               </div>
 
-                              {/* لیست فایل‌های داخل ماژول */}
-                              {(isResource || isFolder) && contentsList.length > 0 && (
-                                <div className="mr-6 space-y-1.5 pt-1">
-                                  {contentsList.map((file, fIdx) => {
-                                    const downloadUrl = getMoodleFileUrl(file.fileurl, session.token);
-                                    return (
-                                      <div
-                                        key={fIdx}
-                                        className="p-2 rounded-lg bg-base-500/15 border border-base-500/25 flex items-center justify-between text-[11px] hover:border-primary/40 transition"
-                                      >
-                                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                                          {getFileIcon(file.filename, file.mimetype)}
-                                          <span className="font-bold text-base-content truncate" title={file.filename}>
-                                            {cleanPersianText(file.filename)}
-                                          </span>
-                                        </div>
-
-                                        <div className="flex items-center gap-1.5 shrink-0 mr-2">
-                                          <span className="text-[10px] text-neutral font-mono ml-1">
-                                            {formatFileSizeFa(file.filesize)}
-                                          </span>
-                                          <button
-                                            type="button"
-                                            onClick={() => setPreviewFile(file)}
-                                            className="p-1 px-1.5 rounded-lg text-neutral hover:text-primary hover:bg-primary/10 transition flex items-center gap-1 font-bold cursor-pointer text-[11px]"
-                                            title="پیش‌نمایش درون‌برنامه‌ای"
-                                          >
-                                            <Eye className="w-3.5 h-3.5" />
-                                            <span className="hidden sm:inline">مشاهده</span>
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() => handleInAppDownload(file.fileurl, file.filename)}
-                                            disabled={downloadingUrl === file.fileurl}
-                                            className="p-1 px-1.5 rounded-lg text-primary hover:bg-primary/10 transition flex items-center gap-1 font-bold cursor-pointer disabled:opacity-50 text-[11px]"
-                                            title="دریافت فایل"
-                                          >
-                                            {downloadingUrl === file.fileurl ? (
-                                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                            ) : (
-                                              <Download className="w-3.5 h-3.5" />
-                                            )}
-                                            <span className="hidden sm:inline">دانلود</span>
-                                          </button>
-                                        </div>
+                              {/* برای پوشه‌هایی با چند فایل */}
+                              {contentsList.length > 1 && (
+                                <div className="space-y-1.5 pt-1.5 border-t border-base-500/20">
+                                  {contentsList.map((file, fIdx) => (
+                                    <div
+                                      key={fIdx}
+                                      className="p-2 rounded-xl bg-base-500/10 border border-base-500/20 flex items-center justify-between text-[11px] hover:border-primary/40 transition"
+                                    >
+                                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                                        {getFileIcon(file.filename, file.mimetype)}
+                                        <span className="font-bold text-base-content truncate" title={file.filename}>
+                                          {cleanPersianText(file.filename)}
+                                        </span>
                                       </div>
-                                    );
-                                  })}
+
+                                      <div className="flex items-center gap-1.5 shrink-0 mr-2">
+                                        <span className="text-[10px] text-neutral font-mono ml-1">
+                                          {formatFileSizeFa(file.filesize)}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() => setPreviewFile(file)}
+                                          className="p-1 px-1.5 rounded-lg text-neutral hover:text-primary hover:bg-primary/10 transition flex items-center gap-1 font-bold cursor-pointer text-[11px]"
+                                          title="پیش‌نمایش درون‌برنامه‌ای"
+                                        >
+                                          <Eye className="w-3.5 h-3.5" />
+                                          <span className="hidden sm:inline">مشاهده</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleInAppDownload(file.fileurl, file.filename)}
+                                          disabled={downloadingUrl === file.fileurl}
+                                          className="p-1 px-1.5 rounded-lg text-primary hover:bg-primary/10 transition flex items-center gap-1 font-bold cursor-pointer disabled:opacity-50 text-[11px]"
+                                          title="دریافت فایل"
+                                        >
+                                          {downloadingUrl === file.fileurl ? (
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                          ) : (
+                                            <Download className="w-3.5 h-3.5" />
+                                          )}
+                                          <span className="hidden sm:inline">دانلود</span>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
                               )}
                             </div>
