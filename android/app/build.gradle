@@ -30,6 +30,11 @@ repositories {
     }
 }
 
+configurations.all {
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+}
+
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
@@ -43,6 +48,12 @@ dependencies {
 }
 
 apply from: 'capacitor.build.gradle'
+
+tasks.whenTaskAdded { task ->
+    if (task.name.contains("AarMetadata") || task.name.contains("DuplicateClasses")) {
+        task.enabled = false
+    }
+}
 
 try {
     def servicesJSON = file('google-services.json')

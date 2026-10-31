@@ -52,19 +52,19 @@ export function cleanPersianText(str, preserveNewlines = false) {
 export function stripHtml(input) {
   if (!input) return '';
   let str = String(input);
-  str = str.replace(/&lt;\/?br\s*\/?&gt;/gi, '\n');
+  // جایگزینی کدهای شکسته و موجودیت‌ها
+  str = str
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&zwnj;/gi, '\u200c');
   str = str.replace(/<\/?br\s*\/?>/gi, '\n');
   str = str.replace(/<\/p>/gi, '\n');
   str = str.replace(/<\/div>/gi, '\n');
   str = str.replace(/<[^>]+>/g, '');
-  str = str
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#039;/g, "'")
-    .replace(/&zwnj;/g, '\u200c');
   return cleanPersianText(str, true);
 }
 
@@ -74,7 +74,14 @@ export function stripHtml(input) {
 export function cleanNotificationText(raw) {
   if (!raw) return '';
   let str = String(raw);
-  str = str.replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/&amp;/gi, '&').replace(/&quot;/gi, '"');
+  str = str
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&zwnj;/gi, '\u200c');
   str = str.replace(/<\/?br\s*\/?>/gi, '\n');
   str = str.replace(/<\/p>/gi, '\n');
   str = str.replace(/<\/div>/gi, '\n');
@@ -84,6 +91,8 @@ export function cleanNotificationText(raw) {
   str = str.replace(/(?:Useful|مفید|غیرمفید|Not useful)\s*:?\s*https?:\/\/[^\s]*/gi, '');
   str = str.replace(/(?:Useful|مفید|غیرمفید|Not useful)\s*:?/gi, '');
   str = str.replace(/https?:\/\/[^\s]*/gi, '');
+  // حذف اسلش یا کاراکترهای عجیب قبل نام کاربر در نوتیفیکیشن
+  str = str.replace(/\/([A-Za-zآ-ی])/g, '$1');
   return cleanPersianText(str, true);
 }
 
