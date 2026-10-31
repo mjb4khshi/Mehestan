@@ -1052,7 +1052,7 @@ export async function sendMoodleMessage(baseUrl, token, toUserId, text, conversa
       const convRes = await callMoodleWs(baseUrl, token, 'core_message_send_messages_to_conversation', {
         convid: conversationId,
         'messages[0][text]': text,
-        'messages[0][textformat]': 1,
+        'messages[0][textformat]': 0,
       });
       if (Array.isArray(convRes) && convRes[0]?.errormessage) {
         throw new Error(convRes[0].errormessage);
@@ -1066,7 +1066,7 @@ export async function sendMoodleMessage(baseUrl, token, toUserId, text, conversa
   const res = await callMoodleWs(baseUrl, token, 'core_message_send_instant_messages', {
     'messages[0][touserid]': toUserId,
     'messages[0][text]': text,
-    'messages[0][textformat]': 1,
+    'messages[0][textformat]': 0,
   });
 
   if (Array.isArray(res) && res[0]?.errormessage) {

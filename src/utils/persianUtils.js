@@ -37,6 +37,28 @@ export function cleanPersianText(str) {
 }
 
 /**
+ * پاکسازی تگ‌های HTML مودل مانند <p> و <br> و تبدیل به متن خالص و خوانا
+ */
+export function stripHtml(input) {
+  if (!input) return '';
+  let str = String(input);
+  str = str.replace(/<br\s*\/?>/gi, '\n');
+  str = str.replace(/<\/p>/gi, '\n');
+  str = str.replace(/<\/div>/gi, '\n');
+  str = str.replace(/<[^>]+>/g, '');
+  str = str
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&zwnj;/g, '\u200c');
+  str = str.replace(/\n\s*\n/g, '\n').trim();
+  return cleanPersianText(str);
+}
+
+/**
  * پاکسازی و استانداردسازی عناوین دروس دانشگاهی
  * اصلاح ی و ک، تبدیل ارقام به فارسی و بهینه‌سازی فاصله‌ها
  */

@@ -25,7 +25,7 @@ import {
   sendMoodleMessage,
   getEnrolledUsers,
 } from '../services/moodle/api';
-import { cleanPersianText, toFaDigits } from '../utils/persianUtils';
+import { cleanPersianText, toFaDigits, stripHtml } from '../utils/persianUtils';
 
 export default function MessagesScreen() {
   const { session, siteInfo, courses } = useMoodleAuth();
@@ -301,7 +301,7 @@ export default function MessagesScreen() {
                             : 'bg-base-500/25 text-base-content rounded-br-sm border border-base-500/35'
                         }`}
                       >
-                        <p className="break-words">{cleanPersianText(m.text)}</p>
+                        <p className="break-words whitespace-pre-line">{stripHtml(m.text)}</p>
                         <div
                           className={`flex items-center gap-1 text-[9px] mt-1 ${
                             isMine ? 'text-primary-content/75 justify-end' : 'text-neutral justify-start'
@@ -421,7 +421,7 @@ export default function MessagesScreen() {
                           )}
                           {conv.lastmessage && (
                             <p className="text-[11px] text-neutral truncate">
-                              {cleanPersianText(conv.lastmessage)}
+                              {stripHtml(conv.lastmessage)}
                             </p>
                           )}
                         </div>
