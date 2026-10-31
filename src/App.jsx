@@ -141,21 +141,21 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-full bg-base text-base-content selection:bg-primary/30 selection:text-primary overflow-x-hidden w-full max-w-full">
-      <div className="lg:flex lg:justify-center lg:items-stretch lg:gap-4 lg:px-4 w-full overflow-x-hidden">
-        <div
-          className="mobile-shell min-h-screen relative flex flex-col justify-between overflow-x-hidden w-full max-w-[430px] md:max-w-[560px]"
-          onPointerDown={handlePointerDown}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerCancel}
-        >
+    <div className="min-h-full bg-base text-base-content selection:bg-primary/30 selection:text-primary">
+      <div className="lg:flex lg:justify-center lg:items-stretch lg:gap-4 lg:px-4">
+        <div className="mobile-shell min-h-screen relative flex flex-col justify-between">
           <TopBar
             title={selectedCourse ? cleanCourseName(selectedCourse.fullname) : null}
             showBack={Boolean(selectedCourse)}
             onBack={handleBackToCourses}
           />
 
-          <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden touch-pan-y select-none mobile-pad-bottom">
+          <div
+            className="flex-1 flex flex-col min-w-0 overflow-x-clip touch-pan-y select-none"
+            onPointerDown={handlePointerDown}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+          >
             {/* ترنزیشن روان و فنری صفحات بر اساس جهت حرکت سبک سروستان */}
             <AnimatePresence mode="wait" custom={slideDir}>
               <motion.main
@@ -165,7 +165,7 @@ export default function App() {
                 initial="enter"
                 animate="center"
                 exit="exit"
-                className="flex-1 min-w-0"
+                className="flex-1 min-w-0 mobile-pad-bottom"
               >
                 {selectedCourse ? (
                   <CourseDetailScreen course={selectedCourse} onBack={handleBackToCourses} />

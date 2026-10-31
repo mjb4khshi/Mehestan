@@ -30,7 +30,7 @@ export default function HomeScreen({ onSelectCourse, onGoToAssignments }) {
   const displayName = cleanPersianText(siteInfo?.fullname) || 'دانشجوی گرامی';
 
   return (
-    <div className="p-3.5 sm:p-4 space-y-4 max-w-2xl mx-auto w-full min-w-0 overflow-x-hidden">
+    <div className="p-3.5 sm:p-4 space-y-4 max-w-2xl mx-auto w-full min-w-0">
       {/* هیرو کارت هویت دانشجو — سبک دقیق ردیفی سروستان (PROFILE_CARD_LAYOUT = 'row') */}
       <section className="sarv-card p-4 sm:p-5 border border-base-500/50 relative overflow-hidden shadow-sm">
         <div className="w-full flex items-stretch gap-3.5">
