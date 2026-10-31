@@ -169,7 +169,7 @@ export default function HomeScreen({ onSelectCourse, onGoToAssignments }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full min-w-0">
             {courses.map((course) => {
               const sarvInfo = getCourseSarvestanInfo(course, sarvCourses);
-              const tone = sarvInfo.color || getToneForCourse(course, sarvCourses);
+              const tone = sarvInfo.color || getToneForCourse(course, courses, sarvCourses);
               const toneStyle = TONE_STYLES[tone] || TONE_STYLES.primary;
               const courseCode = cleanCourseCode(course.shortname || course.fullname);
 
@@ -177,62 +177,55 @@ export default function HomeScreen({ onSelectCourse, onGoToAssignments }) {
                 <div
                   key={course.id}
                   onClick={() => onSelectCourse && onSelectCourse(course)}
-                  className={`sarv-card p-4 hover:border-primary/50 transition cursor-pointer space-y-3 group shadow-sm min-w-0 overflow-hidden border-r-4 ${toneStyle.borderRight}`}
+                  className={`sarv-card p-4 hover:border-primary/50 transition cursor-pointer space-y-2.5 group shadow-sm min-w-0 overflow-hidden border-r-4 ${toneStyle.borderRight}`}
                 >
-                  {/* ردیف بالا: بج کد درس در بالا سمت چپ با سافت بک‌گراند و فونت بولد، و وضعیت در سمت راست */}
-                  <div className="flex items-center justify-between gap-2 min-w-0">
-                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                      {typeof course.progress === 'number' && !isNaN(course.progress) && course.progress > 0 && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary-soft text-secondary shrink-0 font-mono">
-                          {toFaDigits(Math.round(course.progress))}٪
-                        </span>
-                      )}
-                      {course.categoryname && (
-                        <span className="text-[10px] text-neutral/80 truncate">
-                          {cleanPersianText(course.categoryname)}
-                        </span>
-                      )}
-                    </div>
+                  {/* عنوان درس در راست و بج کد درس در چپ — دقیقا در یک ارتفاع بدون فضای خالی */}
+                  <div className="flex items-start justify-between gap-2 min-w-0">
+                    <h4 className="text-[13.5px] font-black text-base-content leading-snug group-hover:text-primary transition line-clamp-2 min-w-0 flex-1">
+                      {cleanCourseName(course.fullname)}
+                    </h4>
 
-                    {/* بج کد درس: بالا سمت چپ، بدون کادر، سافت، بولد، با رنگ یکسان از سروستان */}
                     {courseCode && (
                       <span
-                        className={`text-[10.5px] font-black px-2.5 py-0.5 rounded-lg shrink-0 font-mono ${toneStyle.bgSoft} ${toneStyle.text}`}
+                        dir="ltr"
+                        className={`text-[10px] font-black px-2 py-0.5 rounded-lg shrink-0 font-mono tracking-tight ${toneStyle.bgSoft} ${toneStyle.text}`}
                       >
                         {courseCode}
                       </span>
                     )}
                   </div>
 
-                  {/* عنوان درس و نام استاد خوانده شده از سروستان */}
-                  <div className="space-y-1.5">
-                    <h4 className="text-[13px] font-black text-base-content leading-relaxed group-hover:text-primary transition line-clamp-2">
-                      {cleanCourseName(course.fullname)}
-                    </h4>
-
-                    {sarvInfo.professor && (
-                      <div className="flex items-center gap-1.5 text-[11px] text-neutral font-medium">
-                        <User className="w-3.5 h-3.5 text-neutral/70 shrink-0" />
-                        <span className="truncate">{cleanPersianText(sarvInfo.professor)}</span>
-                      </div>
-                    )}
-
-                    {/* اطلاعات تکمیلی واحد یا زمان برگزاری در صورت وجود در سروستان */}
-                    {(sarvInfo.units || sarvInfo.classTime) && (
-                      <div className="flex items-center gap-2 text-[10px] text-neutral/80 pt-0.5 flex-wrap">
-                        {sarvInfo.units && (
-                          <span className="px-1.5 py-0.5 rounded-md bg-base-500/15 font-bold">
-                            {toFaDigits(sarvInfo.units)} واحد
-                          </span>
-                        )}
-                        {sarvInfo.classTime && (
-                          <span className="truncate">
-                            {cleanPersianText(sarvInfo.classTime)}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  {/* نام استاد و مشخصات واحد و زمان برگرفته از سروستان */}
+                  {(sarvInfo.professor || sarvInfo.units || sarvInfo.classTime || course.categoryname) && (
+                    <div className="flex items-center gap-2 text-[11px] text-neutral font-medium pt-0.5 flex-wrap">
+                      {sarvInfo.professor && (
+                        <span className="flex items-center gap-1">
+                          <User className="w-3.5 h-3.5 text-neutral/70 shrink-0" />
+                          <span className="truncate">{cleanPersianText(sarvInfo.professor)}</span>
+                        </span>
+                      )}
+                      {sarvInfo.units && (
+                        <span className="px-1.5 py-0.5 rounded-md bg-base-500/15 text-[10px] font-bold">
+                          {toFaDigits(sarvInfo.units)} واحد
+                        </span>
+                      )}
+                      {sarvInfo.classTime && (
+                        <span className="text-[10px] text-neutral/80 truncate">
+                          {cleanPersianText(sarvInfo.classTime)}
+                        </span>
+                      )}
+                      {course.categoryname && !sarvInfo.professor && (
+                        <span className="text-[10px] text-neutral/70 truncate">
+                          {cleanPersianText(course.categoryname)}
+                        </span>
+                      )}
+                      {typeof course.progress === 'number' && !isNaN(course.progress) && course.progress > 0 && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-secondary-soft text-secondary font-mono mr-auto">
+                          {toFaDigits(Math.round(course.progress))}٪
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   <div className="pt-2 border-t border-base-500/20 flex items-center justify-between text-[11px] text-primary font-bold">
                     <span>مشاهده محتوا و تکالیف</span>

@@ -200,9 +200,19 @@ export async function callMoodleWs(baseUrl, token, wsfunction, params = {}) {
  */
 export function getMoodleFileUrl(fileUrl, token) {
   if (!fileUrl) return '';
-  if (!token || token.startsWith('demo_')) return fileUrl;
-  const separator = fileUrl.includes('?') ? '&' : '?';
-  return `${fileUrl}${separator}token=${encodeURIComponent(token)}`;
+  let url = String(fileUrl);
+  if (!token || token.startsWith('demo_')) return url;
+
+  // مودل برای دسترسی به فایل‌ها از طریق وب‌سرویس از مسیر webservice/pluginfile.php استفاده می‌کند
+  if (url.includes('/pluginfile.php') && !url.includes('/webservice/pluginfile.php')) {
+    url = url.replace('/pluginfile.php', '/webservice/pluginfile.php');
+  }
+
+  const separator = url.includes('?') ? '&' : '?';
+  if (!url.includes('token=')) {
+    url = `${url}${separator}token=${encodeURIComponent(token)}`;
+  }
+  return url;
 }
 
 /**
@@ -832,7 +842,7 @@ export async function getEnrolledUsers(baseUrl, token, courseId) {
         email: u.email,
         roleName,
         roleType,
-        profileimageurl: u.profileimageurl || null,
+        profileimageurl: u.profileimageurl || u.profileimageurlsmall || null,
         department: u.department || '',
         lastaccess: u.lastaccess ? u.lastaccess * 1000 : null,
       };

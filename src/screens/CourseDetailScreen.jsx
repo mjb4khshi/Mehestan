@@ -71,12 +71,12 @@ const COURSE_TABS = [
 ];
 
 export default function CourseDetailScreen({ course, onBack }) {
-  const { session, siteInfo, assignments } = useMoodleAuth();
+  const { session, siteInfo, assignments, courses = [] } = useMoodleAuth();
   const [activeTab, setActiveTab] = useState('content');
 
   const sarvCourses = React.useMemo(() => getSarvestanCourses(), []);
   const sarvInfo = getCourseSarvestanInfo(course, sarvCourses);
-  const tone = sarvInfo.color || getToneForCourse(course, sarvCourses);
+  const tone = sarvInfo.color || getToneForCourse(course, courses, sarvCourses);
   const toneStyle = TONE_STYLES[tone] || TONE_STYLES.primary;
   const courseCode = cleanCourseCode(course?.shortname || course?.fullname);
 
@@ -459,7 +459,8 @@ export default function CourseDetailScreen({ course, onBack }) {
           </motion.button>
           {courseCode && (
             <span
-              className={`text-[10.5px] font-black px-2.5 py-0.5 rounded-lg shrink-0 font-mono ${toneStyle.bgSoft} ${toneStyle.text}`}
+              dir="ltr"
+              className={`text-[10px] font-black px-2 py-0.5 rounded-lg shrink-0 font-mono tracking-tight ${toneStyle.bgSoft} ${toneStyle.text}`}
             >
               {courseCode}
             </span>

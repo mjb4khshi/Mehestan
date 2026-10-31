@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar as CalendarIcon, Clock, CheckSquare, ChevronLeft } from 'lucide-react';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
+import { getToneForCourse, TONE_STYLES } from '../services/sarvestanBridge';
 import {
   cleanCourseName,
   cleanPersianText,
@@ -11,7 +12,7 @@ import {
 import AssignmentDetailModal from '../components/AssignmentDetailModal';
 
 export default function CalendarScreen() {
-  const { assignments } = useMoodleAuth();
+  const { assignments, courses = [] } = useMoodleAuth();
   const [selectedAssignment, setSelectedAssignment] = useState(null);
 
   const sortedEvents = [...assignments]
@@ -25,7 +26,7 @@ export default function CalendarScreen() {
           <CalendarIcon className="w-4 h-4 text-primary" />
           <span>تقویم موعدهای تحویل و آزمون‌ها</span>
         </h2>
-        <p className="text-xs text-neutral">زمان‌بندی تاریخ سررسید تکالیف، پروژه‌ها و کوییزهای درسی</p>
+        <p className="text-xs text-neutral">زمان‌بندی تاریخ سررسید تکالیف، پروژه‌ها و کوییزهای درسی با رنگ هماهنگ دروس</p>
       </div>
 
       {sortedEvents.length === 0 ? (
@@ -36,24 +37,26 @@ export default function CalendarScreen() {
         <div className="space-y-2.5">
           {sortedEvents.map((evt) => {
             const timing = formatAssignmentTiming(evt.duedate);
+            const tone = getToneForCourse(evt.courseName || evt.courseShortName || evt.course, courses);
+            const toneStyle = TONE_STYLES[tone] || TONE_STYLES.primary;
 
             return (
               <div
                 key={evt.id}
                 onClick={() => setSelectedAssignment(evt)}
-                className="sarv-card p-3.5 flex items-center justify-between gap-3 hover:border-primary/50 transition cursor-pointer group shadow-sm"
+                className={`sarv-card p-3.5 flex items-center justify-between gap-3 hover:border-primary/50 transition cursor-pointer group shadow-sm border-r-4 ${toneStyle.borderRight}`}
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/25 grid place-items-center shrink-0">
+                  <div className={`w-10 h-10 rounded-xl grid place-items-center shrink-0 ${toneStyle.bgSoft} ${toneStyle.text}`}>
                     <CheckSquare className="w-5 h-5" />
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-block ${toneStyle.bgSoft} ${toneStyle.text}`}>
+                      {cleanCourseName(evt.courseName || evt.courseShortName)}
+                    </span>
                     <h4 className="text-xs font-black text-base-content truncate group-hover:text-primary transition">
                       {cleanPersianText(evt.name)}
                     </h4>
-                    <p className="text-[10px] text-neutral mt-0.5 truncate">
-                      {cleanCourseName(evt.courseName || evt.courseShortName)}
-                    </p>
                   </div>
                 </div>
 

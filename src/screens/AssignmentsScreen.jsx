@@ -32,7 +32,7 @@ import {
 } from '../utils/persianUtils';
 
 export default function AssignmentsScreen() {
-  const { session, siteInfo, assignments, quizzes = [] } = useMoodleAuth();
+  const { session, siteInfo, assignments, quizzes = [], courses = [] } = useMoodleAuth();
   const [activityType, setActivityType] = useState('assign'); // 'assign' | 'quiz'
   const [filter, setFilter] = useState('pending'); // 'all' | 'pending' | 'past'
   const [exportedMsg, setExportedMsg] = useState('');
@@ -233,7 +233,7 @@ export default function AssignmentsScreen() {
                 const isSubmitted = a.submissionStatus?.status === 'submitted';
                 const timing = formatAssignmentTiming(a.duedate);
 
-                const tone = getToneForCourse(a.courseName || a.courseShortName);
+                const tone = getToneForCourse(a.courseName || a.courseShortName || a.course, courses);
                 const toneStyle = TONE_STYLES[tone] || TONE_STYLES.primary;
 
                 return (
@@ -345,6 +345,8 @@ export default function AssignmentsScreen() {
               const attemptCount = q.attempts?.length || 0;
               const hasAttempt = attemptCount > 0;
               const lastAttempt = hasAttempt ? q.attempts[attemptCount - 1] : null;
+              const qTone = getToneForCourse(q.courseName || q.course, courses);
+              const qToneStyle = TONE_STYLES[qTone] || TONE_STYLES.secondary;
 
               return (
                 <motion.div
@@ -353,14 +355,14 @@ export default function AssignmentsScreen() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.04 }}
                   onClick={() => setSelectedQuiz(q)}
-                  className="sarv-card p-4 space-y-3 hover:border-purple-500/50 transition cursor-pointer group shadow-sm"
+                  className={`sarv-card p-4 space-y-3 hover:border-primary/50 transition cursor-pointer group shadow-sm border-r-4 ${qToneStyle.borderRight}`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1 min-w-0 flex-1">
-                      <span className="text-[10px] text-purple-500 font-bold bg-purple-500/10 px-2 py-0.5 rounded-full inline-block">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-block ${qToneStyle.bgSoft} ${qToneStyle.text}`}>
                         {cleanPersianText(q.courseName || 'آزمون آنلاین')}
                       </span>
-                      <h3 className="text-xs font-black text-base-content group-hover:text-purple-500 transition leading-relaxed">
+                      <h3 className="text-xs font-black text-base-content group-hover:text-primary transition leading-relaxed">
                         {cleanPersianText(q.name)}
                       </h3>
                     </div>

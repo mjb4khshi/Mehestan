@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getMoodleFileUrl } from '../services/moodle/api';
 import { cleanPersianText } from '../utils/persianUtils';
 
@@ -12,10 +12,19 @@ export default function UserAvatar({
 }) {
   const [imgError, setImgError] = useState(false);
 
+  useEffect(() => {
+    setImgError(false);
+  }, [url]);
+
   const cleanName = cleanPersianText(name) || 'ک';
   const initial = cleanName.charAt(0);
 
-  const hasImage = Boolean(url && !imgError);
+  // در مودل آیکون‌های پیش‌فرض u/f1 یا u/f2 شبح خاکستری معمولی هستند و عکس واقعی کاربر محسوب نمی‌شوند
+  const isDefaultMoodleSilhouette = Boolean(
+    url && (url.includes('/u/f1') || url.includes('/u/f2') || url.includes('/u/f3'))
+  );
+
+  const hasImage = Boolean(url && !imgError && !isDefaultMoodleSilhouette);
   const imageUrl = hasImage ? getMoodleFileUrl(url, token) : '';
 
   const isTeacher = roleType === 'teacher';

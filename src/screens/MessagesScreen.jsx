@@ -145,6 +145,19 @@ export default function MessagesScreen() {
     return '';
   };
 
+  const getConversationAvatarUrl = (conv) => {
+    if (!conv) return '';
+    const other = conv.members?.find((m) => Number(m.id) !== Number(myUserId));
+    return (
+      other?.profileimageurl ||
+      other?.profileimageurlsmall ||
+      conv.imageurl ||
+      conv.members?.[0]?.profileimageurl ||
+      conv.members?.[0]?.profileimageurlsmall ||
+      ''
+    );
+  };
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessageText.trim() || sending) return;
@@ -259,7 +272,7 @@ export default function MessagesScreen() {
                 </button>
 
                 <UserAvatar
-                  url={activeConversation.imageurl || activeConversation.members?.find((m) => Number(m.id) !== Number(myUserId))?.profileimageurl}
+                  url={getConversationAvatarUrl(activeConversation)}
                   name={getConversationTitle(activeConversation)}
                   token={session?.token}
                   size="w-9 h-9"
@@ -411,7 +424,7 @@ export default function MessagesScreen() {
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <UserAvatar
-                          url={conv.imageurl || conv.members?.find((m) => Number(m.id) !== Number(myUserId))?.profileimageurl}
+                          url={getConversationAvatarUrl(conv)}
                           name={title}
                           token={session?.token}
                           size="w-11 h-11"

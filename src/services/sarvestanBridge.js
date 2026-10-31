@@ -198,32 +198,59 @@ export function getCourseSarvestanInfo(moodleCourse, sarvCourses = null) {
 }
 
 /**
- * تشخیص یا تخصیص رنگ درس مطابق الگوریتم رسمی سروستان
+ * تشخیص یا تخصیص رنگ درس مطابق الگوریتم رسمی سروستان و ترتیب دروس ترم
  */
-export function getToneForCourse(courseOrNameOrCode, allSarvCourses = null) {
+export function getToneForCourse(courseOrNameOrCode, moodleCourses = null, allSarvCourses = null) {
   if (!courseOrNameOrCode) return COURSE_TONES[0];
-  const list = Array.isArray(allSarvCourses) && allSarvCourses.length > 0 ? allSarvCourses : getSarvestanCourses();
 
-  const matched = matchCourseWithSarvestan(courseOrNameOrCode, list);
-  if (matched?.color && COURSE_TONES.includes(matched.color)) {
-    return matched.color;
+  // ۱. بررسی اولویت با تطبیق مستقیم در سروستان
+  const sarvList = Array.isArray(allSarvCourses) && allSarvCourses.length > 0 ? allSarvCourses : getSarvestanCourses();
+  const matchedSarv = matchCourseWithSarvestan(courseOrNameOrCode, sarvList);
+  if (matchedSarv?.color && COURSE_TONES.includes(matchedSarv.color)) {
+    return matchedSarv.color;
   }
-
-  if (matched && list.length > 0) {
-    const idx = list.indexOf(matched);
-    if (idx >= 0) {
-      return COURSE_TONES[idx % COURSE_TONES.length];
+  if (matchedSarv && sarvList.length > 0) {
+    const sIdx = sarvList.indexOf(matchedSarv);
+    if (sIdx >= 0) {
+      return COURSE_TONES[sIdx % COURSE_TONES.length];
     }
   }
 
-  const raw = typeof courseOrNameOrCode === 'object' ? courseOrNameOrCode : { name: courseOrNameOrCode };
-  const cCode = cleanCourseCode(raw.code || raw.shortname || '');
-  const cName = cleanCourseName(raw.fullname || raw.name || raw.title || '');
-  const s = cCode || cName || String(courseOrNameOrCode);
+  // ۲. تطبیق با فهرست رسمی دروس ترم جاری دانشجو در مودل جهت هماهنگی ۱۰۰٪ رنگ‌ها بین تمام صفحات
+  const mList = Array.isArray(moodleCourses) && moodleCourses.length > 0
+    ? moodleCourses
+    : readJsonSafe('mehestan_moodle_courses_v1', []);
+
+  if (Array.isArray(mList) && mList.length > 0) {
+    const raw = typeof courseOrNameOrCode === 'object' ? courseOrNameOrCode : { name: courseOrNameOrCode };
+    const targetId = Number(raw.id || raw.course || (typeof courseOrNameOrCode === 'number' ? courseOrNameOrCode : 0));
+    const targetName = cleanCourseName(raw.fullname || raw.courseName || raw.name || raw.title || courseOrNameOrCode);
+    const targetCode = cleanCourseCode(raw.shortname || raw.code || raw.courseShortName || '');
+
+    const mIdx = mList.findIndex((c) => {
+      if (targetId > 0 && Number(c.id) === targetId) return true;
+      const cName = cleanCourseName(c.fullname || c.name || '');
+      if (targetName && cName && (targetName === cName || targetName.includes(cName) || cName.includes(targetName))) return true;
+      const cCode = cleanCourseCode(c.shortname || '');
+      if (targetCode && cCode && targetCode === cCode) return true;
+      return false;
+    });
+
+    if (mIdx >= 0) {
+      return COURSE_TONES[mIdx % COURSE_TONES.length];
+    }
+  }
+
+  // ۳. در غیر این صورت، هش پایدار روی نام تمیز درس
+  const fallbackName = cleanCourseName(
+    typeof courseOrNameOrCode === 'object'
+      ? (courseOrNameOrCode.fullname || courseOrNameOrCode.name || courseOrNameOrCode.title || '')
+      : String(courseOrNameOrCode)
+  );
 
   let hash = 0;
-  for (let i = 0; i < s.length; i++) {
-    hash = (hash << 5) - hash + s.charCodeAt(i);
+  for (let i = 0; i < fallbackName.length; i++) {
+    hash = (hash << 5) - hash + fallbackName.charCodeAt(i);
     hash |= 0;
   }
   return COURSE_TONES[Math.abs(hash) % COURSE_TONES.length];
