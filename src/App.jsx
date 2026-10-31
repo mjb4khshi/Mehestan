@@ -13,7 +13,7 @@ import SettingsScreen from './screens/SettingsScreen';
 import MessagesScreen from './screens/MessagesScreen';
 import { cleanCourseName } from './utils/persianUtils';
 
-const TABS_ORDER = ['courses', 'assignments', 'messages', 'calendar', 'settings'];
+const TABS_ORDER = ['assignments', 'calendar', 'courses', 'messages', 'settings'];
 
 const pageVariants = {
   enter: (direction) => ({

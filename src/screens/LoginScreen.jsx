@@ -173,20 +173,25 @@ export default function LoginScreen() {
       <div className="absolute bottom-1/4 -left-20 w-80 h-80 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md space-y-5 relative z-10">
-        {/* بنر و نشان هویت رسمی مهستان */}
-        <div className="space-y-2.5">
-          <div className="w-full rounded-3xl overflow-hidden shadow-2xl border border-white/10 relative group">
-            <img
-              src="/banner.png"
-              alt="مهستان - تجربه مدرن مودل"
-              className="w-full h-auto object-cover select-none transform transition-transform duration-500 group-hover:scale-[1.02]"
-            />
+        {/* نشان و هویت مهستان */}
+        <div className="text-center space-y-2">
+          <div className="w-16 h-16 mx-auto rounded-3xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-lg shadow-primary/10 transition-transform hover:scale-105">
+            <svg
+              viewBox="0 0 261.778 284.888"
+              className="w-9 h-9 drop-shadow-sm"
+              style={{ fill: 'var(--color-primary, #0066a4)' }}
+              aria-label="مهستان"
+            >
+              <path
+                d="M249.915,219.637A142.574,142.574,0,0,1,9.144,229.3a10.687,10.687,0,0,1,5.2-16.123c53.684-19.214,82.435-41.48,99.12-73.329,17.565-33.528,22.1-70.255,9.816-120.6A10.687,10.687,0,0,1,134.236,6.046,142.566,142.566,0,0,1,249.915,219.637Z"
+                transform="translate(-7.254 -6.03)"
+              />
+            </svg>
           </div>
-          <div className="flex items-center justify-between px-1 text-[11px] text-neutral font-medium">
-            <span>کلاینت هوشمند سامانه یادگیری مودل</span>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-base-500/25 border border-base-500/40 text-[10px] font-bold text-base-content">
-              <span>همگام با سروستان</span>
-            </div>
+          <h1 className="text-2xl font-black text-base-content tracking-tight">مهستان</h1>
+          <p className="text-xs text-neutral font-medium">کلاینت مدرن سامانه آموزش الکترونیکی و مجازی مودل (LMS)</p>
+          <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-base-500/25 border border-base-500/40 text-neutral text-[11px] font-bold">
+            <span>همگام با اکوسیستم سروستان</span>
           </div>
         </div>
 

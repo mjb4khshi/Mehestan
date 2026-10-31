@@ -53,7 +53,7 @@ import AssignmentDetailModal from '../components/AssignmentDetailModal';
 import QuizDetailModal from '../components/QuizDetailModal';
 import DocumentViewerModal from '../components/DocumentViewerModal';
 import { cacheCourseContents, getCachedCourseContents } from '../services/offlineCache';
-import { cleanCourseName, cleanPersianText, toFaDigits, formatFileSizeFa } from '../utils/persianUtils';
+import { cleanCourseName, cleanCourseCode, cleanPersianText, toFaDigits, formatFileSizeFa } from '../utils/persianUtils';
 
 const COURSE_TABS = [
   { id: 'content', label: 'سرفصل‌ها و محتوا', Icon: BookOpen },
@@ -422,7 +422,7 @@ export default function CourseDetailScreen({ course, onBack }) {
             <span>بازگشت به فهرست دروس</span>
           </motion.button>
           <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/25">
-            {cleanPersianText(course.shortname)}
+            {cleanCourseCode(course.shortname)}
           </span>
         </div>
         <h2 className="text-sm font-black text-base-content leading-relaxed">

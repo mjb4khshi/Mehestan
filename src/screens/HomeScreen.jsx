@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
 import { exportAllAssignmentsToSarvestan } from '../services/sarvestanBridge';
-import { cleanCourseName, cleanPersianText, toFaDigits, formatAssignmentTiming } from '../utils/persianUtils';
+import { cleanCourseName, cleanCourseCode, cleanPersianText, toFaDigits, formatAssignmentTiming } from '../utils/persianUtils';
 import AssignmentDetailModal from '../components/AssignmentDetailModal';
 
 export default function HomeScreen({ onSelectCourse, onGoToAssignments }) {
@@ -158,7 +158,7 @@ export default function HomeScreen({ onSelectCourse, onGoToAssignments }) {
               >
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/25">
-                    {cleanPersianText(course.shortname)}
+                    {cleanCourseCode(course.shortname)}
                   </span>
                   {course.progress !== undefined && (
                     <span className="text-[10px] font-mono text-neutral">

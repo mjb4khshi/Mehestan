@@ -59,15 +59,40 @@ export function stripHtml(input) {
 }
 
 /**
+ * پاکسازی و استانداردسازی کد درس دانشگاهی
+ * حذف براکت‌ها و پرانتزها، تبدیل به ارقام فارسی و افزودن پیشوند «کد» در صورت نیاز
+ */
+export function cleanCourseCode(code) {
+  if (!code) return '';
+  let str = String(code).replace(/[\[\]\(\)]/g, '').trim();
+  str = toFaDigits(str);
+  if (/^[\u06F0-\u06F90-9]+$/.test(str)) {
+    return `کد ${str}`;
+  }
+  return str;
+}
+
+/**
  * پاکسازی و استانداردسازی عناوین دروس دانشگاهی
- * اصلاح ی و ک، تبدیل ارقام به فارسی و بهینه‌سازی فاصله‌ها
+ * اصلاح ی و ک، حذف کامل براکت‌ها، تبدیل کد درس به فارسی و بهینه‌سازی فاصله‌ها
  */
 export function cleanCourseName(name) {
   if (!name) return '';
   let clean = cleanPersianText(name);
-  // تبدیل ارقام لاتین موجود در نام درس به فارسی
-  clean = clean.replace(/[0-9]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
-  return clean;
+  
+  // تبدیل الگوهای براکت‌دار کد درس مانند [4051] یا [۴۰۵۱] به: کد ۴۰۵۱
+  clean = clean.replace(/\[\s*([0-9\u06F0-\u06F9\w_-]+)\s*\]/g, (match, code) => {
+    const fa = toFaDigits(code.trim());
+    return fa ? `کد ${fa}` : '';
+  });
+
+  // حذف هرگونه براکت باقیمانده در نام درس
+  clean = clean.replace(/[\[\]]/g, '');
+
+  // تبدیل تمام ارقام لاتین موجود به فارسی
+  clean = toFaDigits(clean);
+
+  return clean.replace(/\s+/g, ' ').trim();
 }
 
 /**

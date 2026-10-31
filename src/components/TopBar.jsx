@@ -109,8 +109,18 @@ export default function TopBar({ title, onBack, showBack = false }) {
                   <ChevronLeft className="w-4.5 h-4.5 rotate-180" />
                 </button>
               ) : (
-                <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/25 grid place-items-center shadow-sm overflow-hidden">
-                  <img src="/logo.svg" alt="مهستان" className="w-6 h-6 object-contain" />
+                <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                  <svg
+                    viewBox="0 0 261.778 284.888"
+                    className="w-6 h-6 drop-shadow-sm transition-transform hover:scale-105 active:scale-95"
+                    style={{ fill: 'var(--color-primary, #0066a4)' }}
+                    aria-label="مهستان"
+                  >
+                    <path
+                      d="M249.915,219.637A142.574,142.574,0,0,1,9.144,229.3a10.687,10.687,0,0,1,5.2-16.123c53.684-19.214,82.435-41.48,99.12-73.329,17.565-33.528,22.1-70.255,9.816-120.6A10.687,10.687,0,0,1,134.236,6.046,142.566,142.566,0,0,1,249.915,219.637Z"
+                      transform="translate(-7.254 -6.03)"
+                    />
+                  </svg>
                 </div>
               )}
             </div>

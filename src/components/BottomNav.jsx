@@ -4,10 +4,10 @@ import { motion, LayoutGroup } from 'framer-motion';
 import { toFaDigits } from '../utils/persianUtils';
 
 const NAV_ITEMS = [
-  { id: 'courses', label: 'دروس', Icon: BookOpen, activeColor: 'text-secondary' },
   { id: 'assignments', label: 'تکالیف', Icon: CheckSquare, activeColor: 'text-primary' },
-  { id: 'messages', label: 'پیام‌ها', Icon: MessageSquare, activeColor: 'text-warning' },
   { id: 'calendar', label: 'تقویم', Icon: Calendar, activeColor: 'text-info' },
+  { id: 'courses', label: 'دروس', Icon: BookOpen, activeColor: 'text-secondary' },
+  { id: 'messages', label: 'پیام‌ها', Icon: MessageSquare, activeColor: 'text-warning' },
   { id: 'settings', label: 'تنظیمات', Icon: Settings, activeColor: 'text-accent' },
 ];
 
