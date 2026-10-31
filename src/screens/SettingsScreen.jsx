@@ -42,6 +42,26 @@ import UpdateModal from '../components/UpdateModal';
 import { checkForUpdate, CURRENT_VERSION } from '../services/updater';
 import { cleanPersianText, toFaDigits, formatFileSizeFa } from '../utils/persianUtils';
 
+function GithubIcon({ className = 'w-4 h-4' }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+      />
+    </svg>
+  );
+}
+
+function LinkedinIcon({ className = 'w-4 h-4' }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+    </svg>
+  );
+}
+
 export default function SettingsScreen() {
   const { session, siteInfo, assignments, logout } = useMoodleAuth();
   const [msg, setMsg] = useState('');
@@ -196,7 +216,7 @@ export default function SettingsScreen() {
           <span>تنظیمات و امکانات تکمیلی مودل</span>
         </h2>
         <p className="text-xs text-neutral">
-          فضای ابری شخصی، دستاوردهای تحصیلی، پالت تم‌های سروستان و مدیریت حافظه
+          فضای ابری شخصی، دستاوردهای تحصیلی، اعلان‌ها و مدیریت حافظه
         </p>
       </div>
 
@@ -602,6 +622,108 @@ export default function SettingsScreen() {
           >
             <BellRing className="w-3.5 h-3.5" />
             <span>ارسال اعلان آزمایشی</span>
+          </button>
+        </div>
+      </div>
+
+      {/* کارت شیک درباره توسعه‌دهنده همراه با تصویر */}
+      <div className="sarv-card p-4 space-y-3 shadow-sm border border-base-500/30">
+        <div className="flex items-center gap-3">
+          <img
+            src="/mjb-avatar.png"
+            alt="محمدجواد بخشی"
+            className="w-12 h-12 rounded-2xl object-cover border-2 border-primary/40 shadow-sm shrink-0"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+          <div className="min-w-0">
+            <p className="font-bold text-base-content text-[13px] flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-accent" />
+              <span>درباره توسعه‌دهنده</span>
+            </p>
+            <p className="text-[11px] text-neutral font-medium mt-0.5 truncate">
+              محمدجواد بخشی ایرج • مهندسی صنایع و سیستم‌ها (ورودی ۴۰۴)
+            </p>
+          </div>
+        </div>
+        <p className="text-[11.5px] text-neutral leading-relaxed">
+          به عنوان دانشجوی خواجه نصیر، کار با سامانه آموزش مجازی وب (مودل) با رابط کاربری قدیمی و کند، به خصوص برای پیگیری ددلاین‌ها و تکالیف، چالش‌برانگیز بود. مهستان به عنوان بال دیگر اکوسیستم سروستان طراحی و پیاده‌سازی شد تا دانشجویان صنعتی خواجه نصیرالدین طوسی تجربه‌ای سریع، مستقل و مدرن داشته باشند.
+        </p>
+        <div className="flex items-center gap-2 pt-1 flex-wrap">
+          <a
+            href="https://github.com/mjb4khshi"
+            target="_blank"
+            rel="noreferrer"
+            className="px-3 py-1.5 rounded-xl bg-primary text-primary-content text-[11px] font-bold flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition cursor-pointer shadow-xs"
+          >
+            <GithubIcon className="w-3.5 h-3.5" />
+            <span>گیت‌هاب</span>
+          </a>
+          <a
+            href="https://www.linkedin.com/in/mjbakhshi/"
+            target="_blank"
+            rel="noreferrer"
+            className="px-3 py-1.5 rounded-xl bg-[#0a66c2] text-white text-[11px] font-bold flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition cursor-pointer shadow-xs"
+          >
+            <LinkedinIcon className="w-3.5 h-3.5" />
+            <span>لینکدین</span>
+          </a>
+          <a
+            href="https://mjb4khshi.github.io/sarvestan"
+            target="_blank"
+            rel="noreferrer"
+            className="px-3 py-1.5 rounded-xl bg-base-500/20 text-base-content text-[11px] font-bold flex items-center gap-1.5 hover:bg-base-500/35 active:scale-95 transition cursor-pointer border border-base-500/30"
+          >
+            <Globe className="w-3.5 h-3.5 text-primary" />
+            <span>وب‌سایت سروستان</span>
+          </a>
+        </div>
+      </div>
+
+      {/* کارت درباره سامانه مهستان */}
+      <div className="sarv-card p-4 space-y-2.5 shadow-sm border border-base-500/30">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-6 h-6 rounded-lg bg-primary/10 text-primary grid place-items-center font-black text-xs">
+              م
+            </span>
+            <h3 className="text-xs font-black text-base-content">درباره مهستان (Mehestan)</h3>
+          </div>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/25 font-mono">
+            نسخه {toFaDigits(CURRENT_VERSION)}
+          </span>
+        </div>
+        <p className="text-[11px] text-neutral leading-relaxed">
+          مهستان یک کلاینت مدرن، مستقل و متن‌باز برای سامانه آموزش مجازی دانشگاه صنعتی خواجه نصیرالدین طوسی (KNTU Moodle) است که بر پایه‌ی دیزاین‌سیستم بومی Sarv UI و متصل به زیست‌بوم دانشجویی سروستان توسعه یافته است.
+        </p>
+      </div>
+
+      {/* عملیات حساب و پاک‌سازی حافظه */}
+      <div className="sarv-card p-4 space-y-3 shadow-sm border border-error/20 bg-error/5">
+        <h3 className="text-xs font-black text-error flex items-center gap-2">
+          <HardDrive className="w-4 h-4 text-error" />
+          <span>عملیات حساب و مدیریت حافظه</span>
+        </h3>
+        <p className="text-[11px] text-neutral leading-relaxed">
+          پاک‌سازی کش موقت برای بارگذاری مجدد سرفصل‌ها و تکالیف، یا خروج کامل از نشست کاربری در سامانه آموزش مجازی:
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+          <button
+            type="button"
+            onClick={handleClearCache}
+            className="w-full py-2 px-3 rounded-xl bg-base-500/20 hover:bg-base-500/30 text-base-content text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 border border-base-500/30 active:scale-98"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-neutral" />
+            <span>پاک‌سازی کش دروس</span>
+          </button>
+          <button
+            type="button"
+            onClick={logout}
+            className="w-full py-2 px-3 rounded-xl bg-error text-white text-xs font-black hover:brightness-110 active:scale-98 transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>خروج از حساب مودل</span>
           </button>
         </div>
       </div>

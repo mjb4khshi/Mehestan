@@ -4,6 +4,7 @@ import {
   getSiteInfo,
   getUserCourses,
   getAssignments,
+  getAssignmentSubmissionStatus,
   getCourseQuizzes,
 } from '../services/moodle/api';
 import {
@@ -186,7 +187,30 @@ export function MoodleAuthProvider({ children }) {
           }
         });
       }
-      setAssignments(flattened);
+
+      // دریافت وضعیت دقیق تحویل تکالیف دانشجو از مودل
+      try {
+        await Promise.allSettled(
+          flattened.map(async (a) => {
+            try {
+              const statRes = await getAssignmentSubmissionStatus(siteUrl, token, a.id, info.userid);
+              if (statRes?.lastattempt?.submission) {
+                a.submissionStatus = statRes.lastattempt.submission;
+                a.lastattempt = statRes.lastattempt;
+                if (statRes.lastattempt.feedback) {
+                  a.gradeInfo = statRes.lastattempt.feedback;
+                }
+              }
+            } catch {
+              // در صورت خطا در استعلام این تکلیف
+            }
+          })
+        );
+      } catch (err) {
+        console.warn('Batch submission status check error:', err);
+      }
+
+      setAssignments([...flattened]);
       cacheAssignments(flattened);
     }
 

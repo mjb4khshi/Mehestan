@@ -18,7 +18,7 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
 import { getNotifications } from '../services/moodle/api';
-import { cleanPersianText, toFaDigits, stripHtml, getShortUniversityName } from '../utils/persianUtils';
+import { cleanPersianText, toFaDigits, stripHtml, cleanNotificationText, getShortUniversityName } from '../utils/persianUtils';
 
 export default function TopBar({ title, onBack, showBack = false }) {
   const { theme, setTheme, themes, isDark, activeThemeMeta } = useTheme();
@@ -378,8 +378,8 @@ export default function TopBar({ title, onBack, showBack = false }) {
                             </span>
                           </div>
                           {n.text && (
-                            <p className="text-[11px] text-neutral/90 leading-relaxed break-words">
-                              {stripHtml(n.text)}
+                            <p className="text-[11px] text-neutral/90 leading-relaxed break-words whitespace-pre-wrap">
+                              {cleanNotificationText(n.text)}
                             </p>
                           )}
                         </div>

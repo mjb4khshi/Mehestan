@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CheckSquare,
   Clock,
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
+import { getAssignmentSubmissionStatus } from '../services/moodle/api';
 import { exportAssignmentToSarvestan, exportAllAssignmentsToSarvestan } from '../services/sarvestanBridge';
 import AssignmentDetailModal from '../components/AssignmentDetailModal';
 import QuizDetailModal from '../components/QuizDetailModal';
@@ -26,12 +27,40 @@ import {
 } from '../utils/persianUtils';
 
 export default function AssignmentsScreen() {
-  const { assignments, quizzes = [] } = useMoodleAuth();
+  const { session, siteInfo, assignments, quizzes = [] } = useMoodleAuth();
   const [activityType, setActivityType] = useState('assign'); // 'assign' | 'quiz'
   const [filter, setFilter] = useState('pending'); // 'all' | 'pending' | 'past'
   const [exportedMsg, setExportedMsg] = useState('');
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [selectedQuiz, setSelectedQuiz] = useState(null);
+  const [, setTick] = useState(0);
+
+  // بررسی وضعیت واقعی تحویل تکالیف در پس‌زمینه
+  useEffect(() => {
+    if (!session || session.isDemo) return;
+    const missing = assignments.filter((a) => !a.submissionStatus);
+    if (missing.length === 0) return;
+
+    let active = true;
+    Promise.allSettled(
+      missing.map(async (a) => {
+        try {
+          const res = await getAssignmentSubmissionStatus(session.siteUrl, session.token, a.id, siteInfo?.userid);
+          if (res?.lastattempt?.submission && active) {
+            a.submissionStatus = res.lastattempt.submission;
+            a.lastattempt = res.lastattempt;
+            if (res.lastattempt.feedback) a.gradeInfo = res.lastattempt.feedback;
+          }
+        } catch {}
+      })
+    ).then(() => {
+      if (active) setTick((t) => t + 1);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [assignments, session, siteInfo]);
 
   const nowSec = Math.floor(Date.now() / 1000);
 
@@ -219,22 +248,48 @@ export default function AssignmentsScreen() {
                       </div>
 
                       <div className="shrink-0 flex items-center gap-1.5">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${
-                            isSubmitted
-                              ? 'bg-success/15 text-success'
-                              : timing.isOverdue
-                              ? 'bg-error/15 text-error'
-                              : 'bg-warning/15 text-warning'
-                          }`}
-                        >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              isSubmitted ? 'bg-success' : timing.isOverdue ? 'bg-error' : 'bg-warning'
-                            }`}
-                          />
-                          {isSubmitted ? 'ارسال شده' : timing.isOverdue ? 'مهلت تمام شد' : 'تحویل داده نشده'}
-                        </span>
+                        {(() => {
+                          const status = a.submissionStatus?.status;
+                          const isGraded = Boolean(a.gradeInfo?.grade || a.lastattempt?.graded);
+                          if (isGraded) {
+                            return (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 bg-emerald-500/15 text-emerald-600 border border-emerald-500/25">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                <span>نمره ثبت شد</span>
+                              </span>
+                            );
+                          }
+                          if (status === 'submitted') {
+                            return (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 bg-success/15 text-success border border-success/25">
+                                <span className="w-1.5 h-1.5 rounded-full bg-success" />
+                                <span>تحویل داده شده</span>
+                              </span>
+                            );
+                          }
+                          if (status === 'draft') {
+                            return (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 bg-amber-500/15 text-amber-600 border border-amber-500/25">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                <span>پیش‌نویس</span>
+                              </span>
+                            );
+                          }
+                          if (timing.isOverdue) {
+                            return (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 bg-base-500/20 text-neutral border border-base-500/30">
+                                <span className="w-1.5 h-1.5 rounded-full bg-neutral" />
+                                <span>مهلت تحویل پایان یافت</span>
+                              </span>
+                            );
+                          }
+                          return (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 bg-primary/10 text-primary border border-primary/25">
+                              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                              <span>در انتظار انجام</span>
+                            </span>
+                          );
+                        })()}
 
                         <button
                           type="button"

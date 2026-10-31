@@ -3,9 +3,9 @@
  * Repository: mjb4khshi/Mehestan
  */
 
-export const CURRENT_VERSION = '1.2.0';
-export const VERSION_CODENAME = 'طوسی';
-export const VERSION_DISPLAY_NAME = '۱٫۲ طوسی';
+export const CURRENT_VERSION = '1.0.0';
+export const VERSION_CODENAME = 'نصیر';
+export const VERSION_DISPLAY_NAME = '۱٫۰٫۰ نصیر';
 export const GITHUB_REPO = 'mjb4khshi/Mehestan';
 export const GITHUB_RELEASES_API = `https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=10`;
 export const GITHUB_RELEASES_PAGE = `https://github.com/${GITHUB_REPO}/releases`;

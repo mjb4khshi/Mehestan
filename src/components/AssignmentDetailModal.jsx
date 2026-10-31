@@ -405,9 +405,13 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
                     <span className="px-2.5 py-0.5 rounded-md bg-warning/20 text-warning font-black text-[11px] border border-warning/30">
                       پیش‌نویس اولیه (نهایی نشده)
                     </span>
-                  ) : (
+                  ) : timing.isOverdue ? (
                     <span className="px-2.5 py-0.5 rounded-md bg-base-500/30 text-neutral font-bold text-[11px]">
-                      هیچ پاسخی تحویل داده نشده است
+                      مهلت تحویل به پایان رسید (پاسخی ارسال نشد)
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-md bg-primary/15 text-primary font-bold text-[11px] border border-primary/25">
+                      در انتظار پاسخ دانشجو (هنوز ارسال نشده)
                     </span>
                   )}
                 </div>

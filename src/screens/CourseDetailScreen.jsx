@@ -989,8 +989,8 @@ export default function CourseDetailScreen({ course, onBack }) {
             )}
           </div>
 
-          {/* فیلتر نقش‌ها سبک سروستان */}
-          <div className="sarv-seg text-xs">
+          {/* فیلتر نقش‌ها سبک سروستان با مستطیل لغزان */}
+          <div className="sarv-seg text-xs relative">
             {[
               { id: 'all', label: 'همه' },
               { id: 'teacher', label: 'اساتید' },
@@ -1001,13 +1001,20 @@ export default function CourseDetailScreen({ course, onBack }) {
                 key={f.id}
                 type="button"
                 onClick={() => setParticipantRoleFilter(f.id)}
-                className={`py-1.5 px-2 rounded-xl text-[11px] font-bold transition cursor-pointer ${
+                className={`relative flex-1 py-1.5 px-2 rounded-xl text-[11px] font-bold transition cursor-pointer z-10 ${
                   participantRoleFilter === f.id
-                    ? 'bg-primary text-primary-content shadow-sm'
+                    ? 'text-primary-content font-black'
                     : 'text-neutral hover:text-base-content'
                 }`}
               >
-                {f.label}
+                {participantRoleFilter === f.id && (
+                  <motion.div
+                    layoutId="participantRoleFilterTab"
+                    className="absolute inset-0 bg-primary rounded-xl shadow-xs -z-10"
+                    transition={{ type: 'spring', bounce: 0.15, duration: 0.25 }}
+                  />
+                )}
+                <span>{f.label}</span>
               </button>
             ))}
           </div>

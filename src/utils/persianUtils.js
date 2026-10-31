@@ -25,17 +25,25 @@ export function toFaNumber(num) {
 /**
  * اصلاح حروف عربی (ي، ى، ك) به فارسی اصیل (ی، ک)، استانداردسازی ارقام و فاصله‌های نامتعارف
  */
-export function cleanPersianText(str) {
+export function cleanPersianText(str, preserveNewlines = false) {
   if (!str) return '';
-  return String(str)
+  let res = String(str)
     .replace(/[\u064A\u0649\u06D2]/g, 'ی') // تبدیل تمام ی‌های عربی و الف مقصوره به ی استاندارد فارسی
     .replace(/\u0643/g, 'ک') // تبدیل ک عربی به ک فارسی
     .replace(/\u0629/g, 'ه') // تبدیل ة به ه
     .replace(/[\u0660-\u0669]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d.charCodeAt(0) - 0x0660]) // تبدیل ارقام عربی به ارقام فارسی
     .replace(/[0-9]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]) // تبدیل ارقام انگلیسی به فارسی
-    .replace(/[\u200B-\u200D\uFEFF]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+    .replace(/[\u200B-\u200D\uFEFF]/g, ' ');
+
+  if (preserveNewlines) {
+    return res
+      .split('\n')
+      .map((l) => l.replace(/[^\S\r\n]+/g, ' ').trim())
+      .filter((l) => l.length > 0)
+      .join('\n');
+  }
+
+  return res.replace(/\s+/g, ' ').trim();
 }
 
 /**
@@ -44,7 +52,8 @@ export function cleanPersianText(str) {
 export function stripHtml(input) {
   if (!input) return '';
   let str = String(input);
-  str = str.replace(/<br\s*\/?>/gi, '\n');
+  str = str.replace(/&lt;\/?br\s*\/?&gt;/gi, '\n');
+  str = str.replace(/<\/?br\s*\/?>/gi, '\n');
   str = str.replace(/<\/p>/gi, '\n');
   str = str.replace(/<\/div>/gi, '\n');
   str = str.replace(/<[^>]+>/g, '');
@@ -56,8 +65,23 @@ export function stripHtml(input) {
     .replace(/&quot;/g, '"')
     .replace(/&#039;/g, "'")
     .replace(/&zwnj;/g, '\u200c');
-  str = str.replace(/\n\s*\n/g, '\n').trim();
-  return cleanPersianText(str);
+  return cleanPersianText(str, true);
+}
+
+/**
+ * پاکسازی متون نوتیفیکیشن‌های اتوماتیک مودل (حذف لینک‌های رهگیری طولانی insights و تگ‌ها)
+ */
+export function cleanNotificationText(raw) {
+  if (!raw) return '';
+  let str = String(raw);
+  str = str.replace(/&lt;\/?br\s*\/?&gt;/gi, '\n');
+  str = str.replace(/<\/?br\s*\/?>/gi, '\n');
+  str = str.replace(/<[^>]+>/g, '');
+  // حذف لینک‌های بلند سیستم بینش‌های مودل و پارامترهای رهگیری
+  str = str.replace(/https?:\/\/[^\s]+report\/insights\/[^\s]*/gi, '');
+  str = str.replace(/(?:Useful|مفید|غیرمفید|Not useful)\s*:?\s*https?:\/\/[^\s]*/gi, '');
+  str = str.replace(/https?:\/\/[^\s]*/gi, '');
+  return cleanPersianText(str, true);
 }
 
 /**
@@ -137,8 +161,8 @@ export function cleanCourseName(name) {
 }
 
 /**
- * فرمت‌بندی تاریخ میلادی به تاریخ شمسی کامل با اعداد فارسی
- * مثال: «دوشنبه، ۱۲ آبان ۱۴۰۳ ساعت ۱۴:۳۰»
+ * فرمت‌بندی تاریخ میلادی به تاریخ شمسی با ترتیب استاندارد و اعداد فارسی
+ * مثال: «سه‌شنبه، ۲۴ مهر ساعت ۱۲:۰۰»
  */
 export function formatPersianDate(timestamp, includeTime = true) {
   if (!timestamp) return 'بدون موعد مشخص';
@@ -146,22 +170,42 @@ export function formatPersianDate(timestamp, includeTime = true) {
   const d = new Date(tsMs);
   if (isNaN(d.getTime())) return 'تاریخ نامعتبر';
 
-  const datePart = d.toLocaleDateString('fa-IR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+  let weekday = '';
+  let day = '';
+  let month = '';
+  let year = '';
 
-  if (!includeTime) {
-    return datePart;
+  try {
+    const parts = new Intl.DateTimeFormat('fa-IR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).formatToParts(d);
+
+    parts.forEach((p) => {
+      if (p.type === 'weekday') weekday = p.value;
+      if (p.type === 'day') day = p.value;
+      if (p.type === 'month') month = p.value;
+      if (p.type === 'year') year = p.value;
+    });
+  } catch {
+    weekday = d.toLocaleDateString('fa-IR', { weekday: 'long' });
+    day = d.toLocaleDateString('fa-IR', { day: 'numeric' });
+    month = d.toLocaleDateString('fa-IR', { month: 'long' });
   }
 
   const hours = String(d.getHours()).padStart(2, '0');
   const minutes = String(d.getMinutes()).padStart(2, '0');
   const timePart = toFaDigits(`${hours}:${minutes}`);
 
-  return `${datePart} ساعت ${timePart}`;
+  const dateText = weekday ? `${weekday}، ${day} ${month}` : `${day} ${month}`;
+
+  if (!includeTime) {
+    return dateText;
+  }
+
+  return `${dateText} ساعت ${timePart}`;
 }
 
 /**
@@ -246,11 +290,16 @@ export function formatAssignmentTiming(dueTimestamp, submissionTimestamp = null,
     const hours = Math.floor((overdue % 86400) / 3600);
 
     let overdueStr = '';
-    if (days > 0) overdueStr += `${toFaDigits(days)} روز و `;
-    overdueStr += `${toFaDigits(hours)} ساعت`;
+    if (days > 0 && hours > 0) {
+      overdueStr = `${toFaDigits(days)} روز و ${toFaDigits(hours)} ساعت پیش`;
+    } else if (days > 0) {
+      overdueStr = `${toFaDigits(days)} روز پیش`;
+    } else {
+      overdueStr = `${toFaDigits(Math.max(hours, 1))} ساعت پیش`;
+    }
 
     return {
-      text: `مهلت منقضی شده (${overdueStr} معوقه)`,
+      text: `مهلت گذشته (${overdueStr})`,
       isLate: true,
       isEarly: false,
       isExpired: true,
