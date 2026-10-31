@@ -1,6 +1,15 @@
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { cacheFileBlob } from '../offlineCache';
 
+export function shouldUseDevProxy() {
+  if (typeof window === 'undefined') return false;
+  if (Capacitor.isNativePlatform()) return false;
+  if (window.location.protocol === 'capacitor:' || window.location.protocol === 'file:') return false;
+  const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const isDevPort = window.location.port === '5180' || window.location.port === '5173' || window.location.port === '5174';
+  return isLocalHost && isDevPort;
+}
+
 /**
  * بررسی و دریافت تنظیمات عمومی هر سامانه مودل (Moodle Public Config)
  * طبق مشخصات استاندارد اپلیکیشن رسمی مودل (tool_mobile_get_public_config)
@@ -36,10 +45,9 @@ export async function fetchMoodlePublicConfig(rawSiteUrl) {
     data = response.data;
   } else {
     // در محیط وب / دسکتاپ لوکال: عبور از پراکسی توسعه دهنده جهت حل CORS
-    const isLocal =
-      typeof window !== 'undefined' &&
-      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-    const fetchUrl = isLocal ? `/api/moodle-proxy?url=${encodeURIComponent(targetUrl)}` : targetUrl;
+    const fetchUrl = shouldUseDevProxy()
+      ? `/api/moodle-proxy?url=${encodeURIComponent(targetUrl)}`
+      : targetUrl;
 
     const res = await fetch(fetchUrl, {
       method: 'POST',
@@ -101,10 +109,50 @@ export async function loginWithMoodle(baseUrl, username, password, service = 'mo
   const cleanUrl = baseUrl.replace(/\/+$/, '');
   const tokenEndpoint = `${cleanUrl}/login/token.php`;
 
-  const isLocal =
-    typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-  const fetchUrl = isLocal ? `/api/moodle-proxy?url=${encodeURIComponent(tokenEndpoint)}` : tokenEndpoint;
+  if (Capacitor.isNativePlatform()) {
+    const response = await CapacitorHttp.post({
+      url: tokenEndpoint,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'MoodleMobile/4.4.0',
+      },
+      data: {
+        username: username.trim(),
+        password: password.trim(),
+        service: service,
+      },
+    });
+
+    if (response.status !== 200) {
+      throw new Error(`خطای ارتباط با سرور مودل (${response.status})`);
+    }
+
+    let data = response.data;
+    if (typeof data === 'string') {
+      try {
+        data = JSON.parse(data);
+      } catch {
+        throw new Error('پاسخ سرور مودل معتبر نیست. لطفاً از طریق درگاه دانشگاه (حساب یکپارچه SSO) وارد شوید.');
+      }
+    }
+
+    if (data.error) {
+      throw new Error(data.error || 'نام کاربری یا رمز عبور اشتباه است.');
+    }
+
+    if (!data.token) {
+      throw new Error('توکن دسترسی از سرور مودل دریافت نشد. لطفاً از درگاه دانشگاه (حساب یکپارچه SSO) استفاده فرمایید.');
+    }
+
+    return {
+      token: data.token,
+      privateToken: data.privatetoken || null,
+    };
+  }
+
+  const fetchUrl = shouldUseDevProxy()
+    ? `/api/moodle-proxy?url=${encodeURIComponent(tokenEndpoint)}`
+    : tokenEndpoint;
 
   const body = new URLSearchParams({
     username: username.trim(),
@@ -124,7 +172,13 @@ export async function loginWithMoodle(baseUrl, username, password, service = 'mo
     throw new Error(`خطای ارتباط با سرور مودل (${res.status})`);
   }
 
-  const data = await res.json();
+  const rawText = await res.text();
+  let data;
+  try {
+    data = JSON.parse(rawText);
+  } catch {
+    throw new Error('پاسخ سرور مودل معتبر نیست. لطفاً از گزینه ورود از طریق درگاه دانشگاه (حساب یکپارچه SSO) استفاده فرمایید.');
+  }
 
   if (data.error) {
     throw new Error(data.error || 'نام کاربری یا رمز عبور اشتباه است.');
@@ -143,11 +197,6 @@ export async function loginWithMoodle(baseUrl, username, password, service = 'mo
 export async function callMoodleWs(baseUrl, token, wsfunction, params = {}) {
   const cleanUrl = baseUrl.replace(/\/+$/, '');
   const serverEndpoint = `${cleanUrl}/webservice/rest/server.php?moodlewsrestformat=json`;
-
-  const isLocal =
-    typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-  const fetchUrl = isLocal ? `/api/moodle-proxy?url=${encodeURIComponent(serverEndpoint)}` : serverEndpoint;
 
   const bodyParams = new URLSearchParams({
     wstoken: token,
@@ -174,6 +223,45 @@ export async function callMoodleWs(baseUrl, token, wsfunction, params = {}) {
     appendParam(k, v);
   });
 
+  if (Capacitor.isNativePlatform()) {
+    const dataObj = {};
+    for (const [key, val] of bodyParams.entries()) {
+      dataObj[key] = val;
+    }
+
+    const response = await CapacitorHttp.post({
+      url: serverEndpoint,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'MoodleMobile/4.4.0',
+      },
+      data: dataObj,
+    });
+
+    if (response.status !== 200) {
+      throw new Error(`خطای وب‌سرویس مودل (${response.status})`);
+    }
+
+    let result = response.data;
+    if (typeof result === 'string') {
+      try {
+        result = JSON.parse(result);
+      } catch {
+        throw new Error('پاسخ وب‌سرویس مودل در قالب JSON معتبر دریافت نشد.');
+      }
+    }
+
+    if (result.exception || result.errorcode) {
+      throw new Error(result.message || result.errorcode || 'خطای سرور مودل رخ داد.');
+    }
+
+    return result;
+  }
+
+  const fetchUrl = shouldUseDevProxy()
+    ? `/api/moodle-proxy?url=${encodeURIComponent(serverEndpoint)}`
+    : serverEndpoint;
+
   const res = await fetch(fetchUrl, {
     method: 'POST',
     headers: {
@@ -186,7 +274,13 @@ export async function callMoodleWs(baseUrl, token, wsfunction, params = {}) {
     throw new Error(`خطای وب‌سرویس مودل (${res.status})`);
   }
 
-  const result = await res.json();
+  const rawText = await res.text();
+  let result;
+  try {
+    result = JSON.parse(rawText);
+  } catch {
+    throw new Error('پاسخ وب‌سرویس مودل در قالب JSON معتبر دریافت نشد.');
+  }
 
   if (result.exception || result.errorcode) {
     throw new Error(result.message || result.errorcode || 'خطای سرور مودل رخ داد.');
@@ -276,11 +370,7 @@ export async function downloadMoodleFile(fileUrl, filename, token) {
 
   const authenticatedUrl = getMoodleFileUrl(fileUrl, token);
 
-  const isLocal =
-    typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
-  const fetchUrl = isLocal
+  const fetchUrl = shouldUseDevProxy()
     ? `/api/moodle-proxy?url=${encodeURIComponent(authenticatedUrl)}`
     : authenticatedUrl;
 
@@ -335,11 +425,7 @@ export async function uploadMoodleFile(baseUrl, token, file, itemId = 0) {
   formData.append('itemid', String(itemId || 0));
   formData.append('file', file);
 
-  const isLocal =
-    typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
-  const fetchUrl = isLocal
+  const fetchUrl = shouldUseDevProxy()
     ? `/api/moodle-proxy?url=${encodeURIComponent(targetUrl)}`
     : targetUrl;
 
