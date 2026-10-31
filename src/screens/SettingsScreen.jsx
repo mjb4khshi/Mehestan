@@ -17,11 +17,14 @@ import {
   Clock,
   Sparkles,
   Loader2,
+  Eye,
+  Calendar,
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
-import { exportAllAssignmentsToSarvestan } from '../services/sarvestanBridge';
+import { exportAllAssignmentsToSarvestan, syncAllWithSarvestan, exportAssignmentsAsIcs } from '../services/sarvestanBridge';
 import { getPrivateFiles, getUserBadges, getMoodleFileUrl, downloadMoodleFile } from '../services/moodle/api';
+import DocumentViewerModal from '../components/DocumentViewerModal';
 import { cleanPersianText, toFaDigits, formatFileSizeFa } from '../utils/persianUtils';
 
 export default function SettingsScreen() {
@@ -35,6 +38,7 @@ export default function SettingsScreen() {
   const [badges, setBadges] = useState([]);
   const [loadingBadges, setLoadingBadges] = useState(false);
   const [downloadingUrl, setDownloadingUrl] = useState(null);
+  const [previewFile, setPreviewFile] = useState(null);
 
   const handleInAppDownload = async (fileUrl, filename) => {
     if (downloadingUrl) return;
@@ -87,9 +91,24 @@ export default function SettingsScreen() {
   }, [session, siteInfo]);
 
   const handleExportAll = () => {
-    exportAllAssignmentsToSarvestan(assignments);
-    setMsg('تمام تکالیف با موفقیت برای سروستان ارسال شدند.');
-    setTimeout(() => setMsg(''), 3000);
+    syncAllWithSarvestan({
+      assignments,
+      courses: session?.courses || [],
+      user: siteInfo,
+    });
+    setMsg('همگام‌سازی کامل با سروستان با موفقیت انجام شد و در صف ذخیره گردید.');
+    setTimeout(() => setMsg(''), 3500);
+  };
+
+  const handleDownloadIcs = () => {
+    try {
+      exportAssignmentsAsIcs(assignments);
+      setMsg('فایل تقویم ددلاین‌ها (.ics) با موفقیت دانلود شد.');
+      setTimeout(() => setMsg(''), 3500);
+    } catch (err) {
+      setMsg(err.message || 'خطا در خروجی تقویم');
+      setTimeout(() => setMsg(''), 3500);
+    }
   };
 
   const handleClearCache = () => {
@@ -185,20 +204,31 @@ export default function SettingsScreen() {
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleInAppDownload(file.fileurl, file.filename)}
-                    disabled={downloadingUrl === file.fileurl}
-                    className="p-2 rounded-lg text-primary hover:bg-primary/10 transition flex items-center gap-1 font-bold shrink-0 mr-2 cursor-pointer disabled:opacity-50"
-                    title="دانلود فایل"
-                  >
-                    {downloadingUrl === file.fileurl ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Download className="w-4 h-4" />
-                    )}
-                    <span className="text-[11px] hidden sm:inline">دریافت</span>
-                  </button>
+                  <div className="flex items-center gap-1.5 shrink-0 mr-2">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewFile(file)}
+                      className="p-1.5 px-2.5 rounded-lg text-neutral hover:text-primary hover:bg-primary/10 transition flex items-center gap-1 font-bold cursor-pointer text-xs"
+                      title="مشاهده آنلاین فایل"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span className="text-[11px] hidden sm:inline">مشاهده</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleInAppDownload(file.fileurl, file.filename)}
+                      disabled={downloadingUrl === file.fileurl}
+                      className="p-1.5 px-2.5 rounded-lg text-primary hover:bg-primary/10 transition flex items-center gap-1 font-bold cursor-pointer disabled:opacity-50 text-xs"
+                      title="دانلود فایل"
+                    >
+                      {downloadingUrl === file.fileurl ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Download className="w-3.5 h-3.5" />
+                      )}
+                      <span className="text-[11px] hidden sm:inline">دریافت</span>
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -261,21 +291,37 @@ export default function SettingsScreen() {
       </div>
 
       {/* یکپارچگی با سروستان */}
-      <div className="sarv-card p-4 space-y-3 shadow-sm">
-        <h3 className="text-xs font-black text-base-content flex items-center gap-2">
-          <Share2 className="w-4 h-4 text-emerald-500" />
-          <span>پل ارتباطی دوطرفه با سروستان</span>
-        </h3>
-        <p className="text-xs text-neutral leading-relaxed">
-          انتقال خودکار تمامی تکالیف و موعدهای امتحانی به تقویم، ویجت‌ها و پلنر هوشمند مطالعه سروستان جهت نمایش در صفحه قفل و هوم‌اسکرین.
+      <div className="sarv-card p-4 space-y-3 shadow-sm border-emerald-500/30 bg-emerald-500/5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-black text-base-content flex items-center gap-2">
+            <Share2 className="w-4 h-4 text-emerald-500" />
+            <span>پل ارتباطی و اتصال با داشبورد سروستان</span>
+          </h3>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 border border-emerald-500/25">
+            کانال محلی آماده
+          </span>
+        </div>
+        <p className="text-[11px] text-neutral leading-relaxed">
+          انتقال هوشمند تکالیف، آزمون‌ها و ددلاین‌های مودل به تقویم، ویجت‌ها و پلنر روزانه مطالعه سروستان بدون نیاز به اینترنت.
         </p>
-        <button
-          type="button"
-          onClick={handleExportAll}
-          className="w-full py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 text-xs font-black hover:bg-emerald-500/25 transition cursor-pointer"
-        >
-          انتقال تمام تکالیف به سروستان
-        </button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+          <button
+            type="button"
+            onClick={handleExportAll}
+            className="w-full py-2.5 px-3 rounded-xl bg-emerald-500 text-white text-xs font-black hover:brightness-110 active:scale-98 transition cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span>همگام‌سازی کامل با سروستان</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleDownloadIcs}
+            className="w-full py-2.5 px-3 rounded-xl bg-base-500/20 hover:bg-base-500/30 text-base-content text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 border border-base-500/30"
+          >
+            <Calendar className="w-3.5 h-3.5 text-primary" />
+            <span>خروجی تقویم (.ics)</span>
+          </button>
+        </div>
       </div>
 
       {/* انتخابگر ۱۶ تم رسمی سروستان */}
@@ -345,6 +391,15 @@ export default function SettingsScreen() {
           </button>
         </div>
       </div>
+
+      {/* مودال پیش‌نمایش فایل‌های شخصی ابری */}
+      {previewFile && (
+        <DocumentViewerModal
+          file={previewFile}
+          token={session?.token}
+          onClose={() => setPreviewFile(null)}
+        />
+      )}
     </div>
   );
 }

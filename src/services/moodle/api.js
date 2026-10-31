@@ -1,4 +1,5 @@
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
+import { cacheFileBlob } from '../offlineCache';
 
 /**
  * بررسی و دریافت تنظیمات عمومی هر سامانه مودل (Moodle Public Config)
@@ -279,6 +280,7 @@ export async function downloadMoodleFile(fileUrl, filename, token) {
       throw new Error(`خطای دریافت فایل از مودل (${res.status})`);
     }
     const blob = await res.blob();
+    cacheFileBlob(fileUrl, cleanFilename, blob).catch(() => {});
     triggerBlobDownload(blob, cleanFilename);
     return { success: true };
   } catch (err) {

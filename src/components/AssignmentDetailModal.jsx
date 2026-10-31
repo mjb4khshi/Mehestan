@@ -23,6 +23,9 @@ import {
   FileCode,
   Lock,
   Unlock,
+  Eye,
+  Camera,
+  Plus,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -36,6 +39,8 @@ import {
   downloadMoodleFile,
 } from '../services/moodle/api';
 import { exportAssignmentToSarvestan } from '../services/sarvestanBridge';
+import DocumentViewerModal from './DocumentViewerModal';
+import { convertImagesToPdf } from '../utils/imageToPdf';
 import {
   cleanPersianText,
   cleanCourseName,
@@ -58,6 +63,31 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
   const [selectedFile, setSelectedFile] = useState(null);
   const [onlineText, setOnlineText] = useState('');
   const [downloadingUrl, setDownloadingUrl] = useState(null);
+  const [previewFile, setPreviewFile] = useState(null);
+  const [showImageToPdf, setShowImageToPdf] = useState(false);
+  const [selectedPhotos, setSelectedPhotos] = useState([]);
+  const [convertingPdf, setConvertingPdf] = useState(false);
+
+  const handleConvertPhotos = async () => {
+    if (selectedPhotos.length === 0) return;
+    setConvertingPdf(true);
+    setActionError('');
+    try {
+      const coursePrefix = cleanCourseName(assignment?.coursename || 'hw');
+      const safeFilename = `${coursePrefix}_submission_${Date.now().toString().slice(-4)}.pdf`;
+      const pdfFile = await convertImagesToPdf(selectedPhotos, safeFilename);
+      setSelectedFile(pdfFile);
+      setShowImageToPdf(false);
+      setSelectedPhotos([]);
+      setActionSuccess('فایل PDF از تصاویر شما تولید و برای ارسال آماده شد.');
+      setTimeout(() => setActionSuccess(''), 4000);
+    } catch (err) {
+      console.error('Image to PDF conversion error:', err);
+      setActionError('خطا در تبدیل تصاویر به PDF: ' + (err.message || 'مشکل در خواندن تصاویر'));
+    } finally {
+      setConvertingPdf(false);
+    }
+  };
 
   const handleInAppDownload = async (fileUrl, filename) => {
     if (downloadingUrl) return;
@@ -420,26 +450,41 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
                 <h4 className="font-bold text-neutral text-[11px]">فایل‌های ضمیمه صورت سوال (استاد):</h4>
                 <div className="space-y-1.5">
                   {assignment.introattachments.map((file, idx) => (
-                    <button
-                      type="button"
+                    <div
                       key={idx}
-                      onClick={() => handleInAppDownload(file.fileurl, file.filename)}
-                      disabled={downloadingUrl === file.fileurl}
-                      className="w-full p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/25 text-primary flex items-center justify-between transition cursor-pointer font-bold text-right disabled:opacity-50"
+                      className="p-2.5 rounded-xl bg-primary/10 border border-primary/25 text-primary flex items-center justify-between transition font-bold"
                     >
-                      <div className="flex items-center gap-2 truncate">
+                      <div className="flex items-center gap-2 truncate min-w-0 flex-1">
                         <FileText className="w-4 h-4 shrink-0" />
                         <span className="truncate">{cleanPersianText(file.filename)}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-[10px] text-neutral shrink-0">
-                        <span>{formatFileSizeFa(file.filesize)}</span>
-                        {downloadingUrl === file.fileurl ? (
-                          <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
-                        ) : (
-                          <Download className="w-3.5 h-3.5 text-primary" />
-                        )}
+                      <div className="flex items-center gap-1.5 text-[10px] text-neutral shrink-0 mr-2">
+                        <span className="font-mono ml-1">{formatFileSizeFa(file.filesize)}</span>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewFile(file)}
+                          className="px-2 py-1 rounded-lg bg-primary/15 hover:bg-primary/25 text-primary text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
+                          title="مشاهده مستقیم صورت سوال"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>مشاهده</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInAppDownload(file.fileurl, file.filename)}
+                          disabled={downloadingUrl === file.fileurl}
+                          className="px-2 py-1 rounded-lg bg-primary text-primary-content text-[10px] font-bold flex items-center gap-1 transition cursor-pointer disabled:opacity-50"
+                          title="دانلود فایل"
+                        >
+                          {downloadingUrl === file.fileurl ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Download className="w-3.5 h-3.5" />
+                          )}
+                          <span>دانلود</span>
+                        </button>
                       </div>
-                    </button>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -462,13 +507,22 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
                         <FileText className="w-4 h-4 text-success shrink-0" />
                         <span className="font-bold text-base-content truncate">{cleanPersianText(file.filename)}</span>
                       </div>
-                      <div className="flex items-center gap-2.5 shrink-0">
-                        <span className="text-[10px] text-neutral font-mono">{formatFileSizeFa(file.filesize)}</span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[10px] text-neutral font-mono ml-1">{formatFileSizeFa(file.filesize)}</span>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewFile(file)}
+                          className="px-2 py-1 rounded-lg bg-base-500/25 hover:bg-base-500/40 text-base-content text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
+                          title="مشاهده فایل پاسخ"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>مشاهده</span>
+                        </button>
                         <button
                           type="button"
                           onClick={() => handleInAppDownload(file.fileurl, file.filename)}
                           disabled={downloadingUrl === file.fileurl}
-                          className="p-1 rounded text-primary hover:bg-primary/10 transition cursor-pointer disabled:opacity-50"
+                          className="p-1.5 rounded-lg text-primary hover:bg-primary/10 transition cursor-pointer disabled:opacity-50"
                           title="دانلود فایل ارسالی"
                         >
                           {downloadingUrl === file.fileurl ? (
@@ -551,15 +605,145 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
                   </label>
                 </div>
 
-                {selectedFile && (
+                <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
                   <button
                     type="button"
-                    onClick={() => setSelectedFile(null)}
-                    className="text-[10px] text-error hover:underline flex items-center gap-1 font-bold cursor-pointer mr-auto"
+                    onClick={() => setShowImageToPdf(!showImageToPdf)}
+                    className="px-3 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 text-purple-600 border border-purple-500/30 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition shadow-xs"
                   >
-                    <Trash2 className="w-3 h-3" />
-                    <span>حذف فایل انتخاب‌شده</span>
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>تبدیل عکس‌های دست‌نویس به PDF</span>
                   </button>
+
+                  {selectedFile && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFile(null)}
+                      className="text-[10px] text-error hover:underline flex items-center gap-1 font-bold cursor-pointer mr-auto"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>حذف فایل انتخاب‌شده</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* ابزار تبدیل عکس به PDF */}
+                {showImageToPdf && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/30 space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Camera className="w-4 h-4 text-purple-600" />
+                        <h5 className="text-xs font-black text-base-content">
+                          تبدیل و ادغام عکس‌های برگه به فایل PDF
+                        </h5>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowImageToPdf(false);
+                          setSelectedPhotos([]);
+                        }}
+                        className="text-neutral hover:text-base-content text-xs p-1 cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <p className="text-[11px] text-neutral leading-relaxed">
+                      عکس‌های گرفته‌شده از برگه‌های دست‌نویس را به ترتیب اضافه کنید تا مهستان آنها را در قالب یک فایل PDF استاندارد و کم‌حجم ترکیب کند.
+                    </p>
+
+                    <div className="relative">
+                      <input
+                        type="file"
+                        id="camera-photos-input"
+                        multiple
+                        accept="image/*"
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          if (files.length > 0) {
+                            setSelectedPhotos((prev) => [...prev, ...files]);
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="camera-photos-input"
+                        className="p-3 rounded-xl border border-dashed border-purple-500/40 hover:bg-purple-500/15 flex items-center justify-center gap-2 cursor-pointer transition text-center text-xs font-bold text-purple-600"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>افزودن عکس برگه‌ها (صفحه به صفحه)</span>
+                      </label>
+                    </div>
+
+                    {selectedPhotos.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-[11px] text-neutral font-bold">
+                          <span>تعداد صفحات انتخاب‌شده: {toFaDigits(selectedPhotos.length)} صفحه</span>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPhotos([])}
+                            className="text-error hover:underline text-[10px] cursor-pointer"
+                          >
+                            پاک‌سازی عکس‌ها
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                          {selectedPhotos.map((photo, pIdx) => (
+                            <div
+                              key={pIdx}
+                              className="relative p-1.5 rounded-xl bg-base-100 border border-base-500/25 flex flex-col items-center text-center group"
+                            >
+                              <div className="w-full h-16 rounded-lg bg-base-500/20 overflow-hidden mb-1 flex items-center justify-center">
+                                <img
+                                  src={URL.createObjectURL(photo)}
+                                  alt={photo.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <span className="text-[10px] font-bold text-base-content truncate w-full">
+                                صفحه {toFaDigits(pIdx + 1)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setSelectedPhotos((prev) => prev.filter((_, i) => i !== pIdx))
+                                }
+                                className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-error text-white flex items-center justify-center text-[10px] shadow-sm cursor-pointer"
+                                title="حذف این صفحه"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleConvertPhotos}
+                          disabled={convertingPdf}
+                          className="w-full py-2.5 rounded-xl bg-purple-600 text-white text-xs font-black hover:bg-purple-700 active:scale-98 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50"
+                        >
+                          {convertingPdf ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>در حال فشرده‌سازی و تولید PDF...</span>
+                            </>
+                          ) : (
+                            <>
+                              <FileCheck className="w-3.5 h-3.5" />
+                              <span>ساخت و الصاق PDF نهایی به تکلیف</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </motion.div>
                 )}
               </div>
 
@@ -627,6 +811,15 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
             </div>
           </div>
         </motion.div>
+
+        {/* پیش‌نمایش درون‌برنامه‌ای فایل‌های صورت سوال و پاسخ */}
+        {previewFile && (
+          <DocumentViewerModal
+            file={previewFile}
+            token={session?.token}
+            onClose={() => setPreviewFile(null)}
+          />
+        )}
       </div>
     </AnimatePresence>
   );
