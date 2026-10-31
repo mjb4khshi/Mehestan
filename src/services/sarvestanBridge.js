@@ -8,42 +8,49 @@ export const COURSE_TONES = ['primary', 'info', 'success', 'secondary', 'accent'
 
 export const TONE_STYLES = {
   primary: {
+    bg: 'bg-primary',
     borderRight: 'border-r-primary',
     bgSoft: 'bg-primary-soft',
     text: 'text-primary',
     border: 'border-primary',
   },
   info: {
+    bg: 'bg-info',
     borderRight: 'border-r-info',
     bgSoft: 'bg-info-soft',
     text: 'text-info',
     border: 'border-info',
   },
   success: {
+    bg: 'bg-success',
     borderRight: 'border-r-success',
     bgSoft: 'bg-success-soft',
     text: 'text-success',
     border: 'border-success',
   },
   secondary: {
+    bg: 'bg-secondary',
     borderRight: 'border-r-secondary',
     bgSoft: 'bg-secondary-soft',
     text: 'text-secondary',
     border: 'border-secondary',
   },
   accent: {
+    bg: 'bg-accent',
     borderRight: 'border-r-accent',
     bgSoft: 'bg-accent-soft',
     text: 'text-accent',
     border: 'border-accent',
   },
   warn: {
+    bg: 'bg-warn',
     borderRight: 'border-r-warn',
     bgSoft: 'bg-warn-soft',
     text: 'text-warn',
     border: 'border-warn',
   },
   danger: {
+    bg: 'bg-danger',
     borderRight: 'border-r-danger',
     bgSoft: 'bg-danger-soft',
     text: 'text-danger',
@@ -198,53 +205,52 @@ export function getCourseSarvestanInfo(moodleCourse, sarvCourses = null) {
 }
 
 /**
+ * تابع نرمال‌سازی دقیق نام درس برای تولید هش رنگی کاملاً یکسان با سروستان (viewModel.js)
+ */
+function normalizeForColorHash(name) {
+  if (!name) return '';
+  return String(name)
+    .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧۸۹'.indexOf(d)))
+    .replace(/[ي]/g, 'ی')
+    .replace(/[ك]/g, 'ک')
+    .replace(/^(?:ورود\s*به\s*)?فضای\s*مجازی(?:\s*درس)?\s*[:\-–—]?\s*/gi, '')
+    .replace(/^کلاس\s*[:\-–—]\s*/gi, '')
+    .replace(/‌/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
  * تشخیص یا تخصیص رنگ درس مطابق الگوریتم رسمی سروستان و ترتیب دروس ترم
  */
 export function getToneForCourse(courseOrNameOrCode, moodleCourses = null, allSarvCourses = null) {
   if (!courseOrNameOrCode) return COURSE_TONES[0];
 
-  // ۱. بررسی اولویت با تطبیق مستقیم در سروستان
+  const raw = typeof courseOrNameOrCode === 'object' ? courseOrNameOrCode : { name: courseOrNameOrCode };
+  if (raw.color && COURSE_TONES.includes(raw.color)) {
+    return raw.color;
+  }
+
+  // ۱. بررسی اولویت با تطبیق مستقیم در داده‌های همگام‌شده سروستان
   const sarvList = Array.isArray(allSarvCourses) && allSarvCourses.length > 0 ? allSarvCourses : getSarvestanCourses();
-  const matchedSarv = matchCourseWithSarvestan(courseOrNameOrCode, sarvList);
-  if (matchedSarv?.color && COURSE_TONES.includes(matchedSarv.color)) {
-    return matchedSarv.color;
-  }
-  if (matchedSarv && sarvList.length > 0) {
-    const sIdx = sarvList.indexOf(matchedSarv);
-    if (sIdx >= 0) {
-      return COURSE_TONES[sIdx % COURSE_TONES.length];
+  if (sarvList && sarvList.length > 0) {
+    const matchedSarv = matchCourseWithSarvestan(courseOrNameOrCode, sarvList);
+    if (matchedSarv?.color && COURSE_TONES.includes(matchedSarv.color)) {
+      return matchedSarv.color;
+    }
+    if (matchedSarv) {
+      const sIdx = sarvList.indexOf(matchedSarv);
+      if (sIdx >= 0) {
+        return COURSE_TONES[sIdx % COURSE_TONES.length];
+      }
     }
   }
 
-  // ۲. تطبیق با فهرست رسمی دروس ترم جاری دانشجو در مودل جهت هماهنگی ۱۰۰٪ رنگ‌ها بین تمام صفحات
-  const mList = Array.isArray(moodleCourses) && moodleCourses.length > 0
-    ? moodleCourses
-    : readJsonSafe('mehestan_moodle_courses_v1', []);
-
-  if (Array.isArray(mList) && mList.length > 0) {
-    const raw = typeof courseOrNameOrCode === 'object' ? courseOrNameOrCode : { name: courseOrNameOrCode };
-    const targetId = Number(raw.id || raw.course || (typeof courseOrNameOrCode === 'number' ? courseOrNameOrCode : 0));
-    const targetName = cleanCourseName(raw.fullname || raw.courseName || raw.name || raw.title || courseOrNameOrCode);
-    const targetCode = cleanCourseCode(raw.shortname || raw.code || raw.courseShortName || '');
-
-    const mIdx = mList.findIndex((c) => {
-      if (targetId > 0 && Number(c.id) === targetId) return true;
-      const cName = cleanCourseName(c.fullname || c.name || '');
-      if (targetName && cName && (targetName === cName || targetName.includes(cName) || cName.includes(targetName))) return true;
-      const cCode = cleanCourseCode(c.shortname || '');
-      if (targetCode && cCode && targetCode === cCode) return true;
-      return false;
-    });
-
-    if (mIdx >= 0) {
-      return COURSE_TONES[mIdx % COURSE_TONES.length];
-    }
-  }
-
-  // ۳. در غیر این صورت، هش پایدار روی نام تمیز درس
-  const fallbackName = cleanCourseName(
+  // ۲. استفاده از الگوریتم هش یکپارچه سروستان تا حتی بدون همگام‌سازی، رنگ‌ها ۱۰۰٪ هماهنگ باشند
+  const fallbackName = normalizeForColorHash(
     typeof courseOrNameOrCode === 'object'
-      ? (courseOrNameOrCode.fullname || courseOrNameOrCode.name || courseOrNameOrCode.title || '')
+      ? (courseOrNameOrCode.fullname || courseOrNameOrCode.courseName || courseOrNameOrCode.name || courseOrNameOrCode.title || '')
       : String(courseOrNameOrCode)
   );
 
@@ -317,9 +323,14 @@ export function openSarvestanApp(deepLink) {
  * همگام‌سازی یک تکلیف با سروستان
  */
 export function exportAssignmentToSarvestan(assignment, courseName = '') {
+  const rawName = courseName || assignment.courseName || assignment.courseShortName || '';
+  const cleanName = cleanCourseName(rawName);
+  const matchedSarv = matchCourseWithSarvestan(cleanName);
+  const finalCourseName = matchedSarv?.name || cleanName;
+
   const payload = {
-    title: assignment.name || 'تکلیف کلاسی',
-    courseName: courseName,
+    title: cleanPersianText(assignment.name || 'تکلیف کلاسی'),
+    courseName: finalCourseName,
     dueDate: assignment.duedate ? new Date(assignment.duedate * 1000).toISOString() : null,
     source: 'mehestan',
     externalId: String(assignment.id),
@@ -338,14 +349,21 @@ export function exportAssignmentToSarvestan(assignment, courseName = '') {
  * انتقال دسته‌جمعی تکالیف به سروستان
  */
 export function exportAllAssignmentsToSarvestan(assignments = []) {
-  const payload = assignments.map((a) => ({
-    title: a.name,
-    courseName: a.courseName || '',
-    dueDate: a.duedate ? new Date(a.duedate * 1000).toISOString() : null,
-    source: 'mehestan',
-    externalId: String(a.id),
-    syncTimestamp: Date.now(),
-  }));
+  const payload = assignments.map((a) => {
+    const rawName = a.courseName || a.courseShortName || '';
+    const cleanName = cleanCourseName(rawName);
+    const matchedSarv = matchCourseWithSarvestan(cleanName);
+    const finalCourseName = matchedSarv?.name || cleanName;
+
+    return {
+      title: cleanPersianText(a.name || 'تکلیف کلاسی'),
+      courseName: finalCourseName,
+      dueDate: a.duedate ? new Date(a.duedate * 1000).toISOString() : null,
+      source: 'mehestan',
+      externalId: String(a.id),
+      syncTimestamp: Date.now(),
+    };
+  });
 
   dispatchToSarvestan('batch_tasks', payload);
 
@@ -353,6 +371,40 @@ export function exportAllAssignmentsToSarvestan(assignments = []) {
   const deepLink = `sarvestan://import-batch-tasks?data=${encoded}`;
   openSarvestanApp(deepLink);
   return true;
+}
+
+/**
+ * درخواست دریافت برنامه و رنگ‌بندی رسمی دروس از سروستان
+ */
+export function requestSarvestanScheduleSync() {
+  dispatchToSarvestan('REQUEST_SARVESTAN_DATA', { from: 'mehestan' });
+  const deepLink = 'sarvestan://export-schedule';
+  openSarvestanApp(deepLink);
+  return true;
+}
+
+/**
+ * ذخیره داده‌های همگام‌شده سروستان (برنامه، دروس، رنگ‌ها) در حافظه محلی
+ */
+export function saveSyncedSarvestanData(data) {
+  if (!data) return false;
+  try {
+    const payload = typeof data === 'string' ? JSON.parse(data) : data;
+    localStorage.setItem('mehestan_sarvestan_synced_data', JSON.stringify(payload));
+    if (Array.isArray(payload.courses) && payload.courses.length > 0) {
+      localStorage.setItem('sarvestan_live_courses', JSON.stringify(payload.courses));
+    }
+    if (payload.schedule) {
+      localStorage.setItem('sarvestan_live_schedule', JSON.stringify(payload.schedule));
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('sarvestanDataSynced', { detail: payload }));
+    }
+    return true;
+  } catch (err) {
+    console.warn('Failed to save synced Sarvestan data:', err);
+    return false;
+  }
 }
 
 /**
@@ -381,6 +433,12 @@ export function syncAllWithSarvestan({ assignments = [], courses = [], user = nu
   };
 
   dispatchToSarvestan('full_sync', syncData);
+
+  if (Array.isArray(assignments) && assignments.length > 0) {
+    exportAllAssignmentsToSarvestan(assignments);
+  } else {
+    openSarvestanApp('sarvestan://study-planner');
+  }
 
   return {
     success: true,

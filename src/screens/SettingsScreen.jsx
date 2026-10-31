@@ -28,7 +28,12 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
-import { exportAllAssignmentsToSarvestan, syncAllWithSarvestan, exportAssignmentsAsIcs } from '../services/sarvestanBridge';
+import {
+  exportAllAssignmentsToSarvestan,
+  syncAllWithSarvestan,
+  exportAssignmentsAsIcs,
+  requestSarvestanScheduleSync,
+} from '../services/sarvestanBridge';
 import { getPrivateFiles, getUserBadges, getMoodleFileUrl, downloadMoodleFile } from '../services/moodle/api';
 import {
   isMoodleNotificationEnabled,
@@ -179,14 +184,41 @@ export default function SettingsScreen() {
     loadBadges();
   }, [session, siteInfo]);
 
+  // شنود تایید همگام‌سازی از طرف سروستان
+  useEffect(() => {
+    const onSarvestanSync = () => {
+      setMsg('برنامه هفتگی و رنگ‌بندی دروس با موفقیت از سروستان دریافت و همگام شد.');
+      setTimeout(() => setMsg(''), 4000);
+    };
+    window.addEventListener('sarvestanDataSynced', onSarvestanSync);
+    return () => window.removeEventListener('sarvestanDataSynced', onSarvestanSync);
+  }, []);
+
   const handleExportAll = () => {
-    syncAllWithSarvestan({
-      assignments,
-      courses: session?.courses || [],
-      user: siteInfo,
-    });
-    setMsg('همگام‌سازی کامل با سروستان با موفقیت انجام شد و در صف ذخیره گردید.');
-    setTimeout(() => setMsg(''), 3500);
+    try {
+      if (!assignments || assignments.length === 0) {
+        setMsg('تکلیفی برای ارسال وجود ندارد.');
+        setTimeout(() => setMsg(''), 3000);
+        return;
+      }
+      exportAllAssignmentsToSarvestan(assignments);
+      setMsg('تکالیف در حال انتقال به تقویم و پلنر مطالعه سروستان...');
+      setTimeout(() => setMsg(''), 3500);
+    } catch (err) {
+      setMsg(err.message || 'خطا در ارسال تکالیف به سروستان');
+      setTimeout(() => setMsg(''), 3500);
+    }
+  };
+
+  const handleSyncColors = () => {
+    try {
+      requestSarvestanScheduleSync();
+      setMsg('درخواست دریافت رنگ و مشخصات دروس به سروستان ارسال گردید...');
+      setTimeout(() => setMsg(''), 3500);
+    } catch (err) {
+      setMsg(err.message || 'خطا در ارتباط با سروستان');
+      setTimeout(() => setMsg(''), 3500);
+    }
   };
 
   const handleDownloadIcs = () => {
@@ -564,14 +596,22 @@ export default function SettingsScreen() {
         <p className="text-[11px] text-neutral leading-relaxed">
           انتقال هوشمند تکالیف، آزمون‌ها و ددلاین‌های مودل به تقویم، ویجت‌ها و پلنر روزانه مطالعه سروستان بدون نیاز به اینترنت.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
           <button
             type="button"
             onClick={handleExportAll}
             className="w-full py-2.5 px-3 rounded-xl bg-emerald-500 text-white text-xs font-black hover:brightness-110 active:scale-98 transition cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
           >
             <Share2 className="w-3.5 h-3.5" />
-            <span>همگام‌سازی کامل با سروستان</span>
+            <span>انتقال کلیه تکالیف</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleSyncColors}
+            className="w-full py-2.5 px-3 rounded-xl bg-primary text-primary-content text-xs font-black hover:brightness-110 active:scale-98 transition cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
+          >
+            <Palette className="w-3.5 h-3.5" />
+            <span>همگام‌سازی رنگ دروس</span>
           </button>
           <button
             type="button"

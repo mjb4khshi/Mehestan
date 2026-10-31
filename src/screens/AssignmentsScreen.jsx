@@ -35,6 +35,13 @@ export default function AssignmentsScreen() {
   const [selectedQuiz, setSelectedQuiz] = useState(null);
   const [, setTick] = useState(0);
 
+  // گوش دادن به رویداد همگام‌سازی رنگ‌ها و اطلاعات از سروستان جهت به‌روزرسانی زنده کارت‌ها
+  useEffect(() => {
+    const onSarvestanSync = () => setTick((t) => t + 1);
+    window.addEventListener('sarvestanDataSynced', onSarvestanSync);
+    return () => window.removeEventListener('sarvestanDataSynced', onSarvestanSync);
+  }, []);
+
   // بررسی وضعیت واقعی تحویل تکالیف در پس‌زمینه
   useEffect(() => {
     if (!session || session.isDemo) return;
@@ -203,16 +210,17 @@ export default function AssignmentsScreen() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.03 }}
                     onClick={() => setSelectedAssignment(a)}
-                    className="sarv-card p-4 space-y-3 hover:border-primary/50 transition cursor-pointer group shadow-sm relative overflow-hidden"
+                    className="sarv-card relative p-4 pr-5 space-y-3 hover:border-primary/50 transition cursor-pointer group shadow-xs overflow-hidden"
                   >
-                    {/* خط ظریف رنگی نشانگر درس در سمت راست کارت */}
-                    <div className={`absolute top-0 right-0 bottom-0 w-1.5 ${toneStyle.borderRight.replace('border-r-', 'bg-')}`} />
+                    {/* نوار عمودی کپسولی و شیک نشانگر رنگ درس */}
+                    <div className={`absolute top-3.5 bottom-3.5 right-1.5 w-1 rounded-full ${toneStyle.bg || 'bg-primary'}`} />
 
                     {/* سطر اول: نام درس + وضعیت تحویل و اشتراک */}
                     <div className="flex items-start justify-between gap-2.5">
                       <div className="space-y-1 min-w-0 flex-1">
-                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full inline-block ${toneStyle.bgSoft} ${toneStyle.text}`}>
-                          {cleanCourseName(a.courseName || a.courseShortName)}
+                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 ${toneStyle.bgSoft} ${toneStyle.text}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full inline-block shrink-0 ${toneStyle.bg || 'bg-primary'}`} />
+                          <span>{cleanCourseName(a.courseName || a.courseShortName)}</span>
                         </span>
                         <h3 className="text-xs font-black text-base-content group-hover:text-primary transition leading-relaxed pt-0.5">
                           {cleanPersianText(a.name)}
@@ -320,14 +328,16 @@ export default function AssignmentsScreen() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.03 }}
                   onClick={() => setSelectedQuiz(q)}
-                  className="sarv-card p-4 space-y-3 hover:border-primary/50 transition cursor-pointer group shadow-sm relative overflow-hidden"
+                  className="sarv-card relative p-4 pr-5 space-y-3 hover:border-primary/50 transition cursor-pointer group shadow-xs overflow-hidden"
                 >
-                  <div className={`absolute top-0 right-0 bottom-0 w-1.5 ${qToneStyle.borderRight.replace('border-r-', 'bg-')}`} />
+                  {/* نوار عمودی کپسولی و شیک نشانگر رنگ درس */}
+                  <div className={`absolute top-3.5 bottom-3.5 right-1.5 w-1 rounded-full ${qToneStyle.bg || 'bg-secondary'}`} />
 
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1 min-w-0 flex-1">
-                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full inline-block ${qToneStyle.bgSoft} ${qToneStyle.text}`}>
-                        {cleanPersianText(q.courseName || 'آزمون آنلاین')}
+                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 ${qToneStyle.bgSoft} ${qToneStyle.text}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full inline-block shrink-0 ${qToneStyle.bg || 'bg-secondary'}`} />
+                        <span>{cleanCourseName(q.courseName || 'آزمون آنلاین')}</span>
                       </span>
                       <h3 className="text-xs font-black text-base-content group-hover:text-primary transition leading-relaxed pt-0.5">
                         {cleanPersianText(q.name)}

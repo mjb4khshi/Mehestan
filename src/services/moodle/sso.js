@@ -1,6 +1,7 @@
 import { Md5 } from 'ts-md5';
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
+import { saveSyncedSarvestanData } from '../sarvestanBridge';
 
 const SSO_STORAGE_KEY = 'mehestan_sso_pending';
 
@@ -233,6 +234,26 @@ export function parseMoodleSSOResponse(rawInput, expectedSiteUrl = null) {
   throw new Error('توکن معتبری در ورودی یافت نشد.');
 }
 
+function handleIncomingSarvestanDataUrl(url) {
+  try {
+    let raw = '';
+    if (url.includes('data=')) {
+      const parts = url.split('data=');
+      if (parts.length > 1) {
+        raw = parts[1].split('&')[0];
+      }
+    }
+    if (raw) {
+      const decoded = decodeURIComponent(raw);
+      saveSyncedSarvestanData(decoded);
+      return true;
+    }
+  } catch (err) {
+    console.warn('Failed to parse incoming Sarvestan data URL:', err);
+  }
+  return false;
+}
+
 /**
  * راه‌اندازی شنونده Deep Link برای کلاینت Capacitor و محیط وب
  */
@@ -243,8 +264,14 @@ export function setupDeepLinkListener(onTokenReceived) {
     // شنود باز شدن اپلیکیشن با custom url scheme در اندروید
     App.addListener('appUrlOpen', (event) => {
       try {
-        if (event?.url && (event.url.includes('moodlemobile://') || event.url.includes('mehestan://'))) {
-          const parsed = parseMoodleSSOResponse(event.url);
+        const fullUrl = event?.url || '';
+        if (fullUrl.includes('sync-schedule') || fullUrl.includes('sarvestan-data')) {
+          handleIncomingSarvestanDataUrl(fullUrl);
+          return;
+        }
+
+        if (fullUrl && (fullUrl.includes('moodlemobile://') || fullUrl.includes('mehestan://'))) {
+          const parsed = parseMoodleSSOResponse(fullUrl);
           if (parsed.success && parsed.token) {
             onTokenReceived(parsed);
           }
@@ -259,6 +286,11 @@ export function setupDeepLinkListener(onTokenReceived) {
     // در محیط وب: بررسی وجود توکن یا deepLink در Query Params و Hash
     const checkIncomingWebToken = () => {
       try {
+        const currentHref = window.location.href;
+        if (currentHref.includes('sync-schedule') || currentHref.includes('sarvestan-data')) {
+          handleIncomingSarvestanDataUrl(currentHref);
+        }
+
         const searchParams = new URLSearchParams(window.location.search);
         let deepLink =
           searchParams.get('webAppDeepLink') ||

@@ -11,16 +11,18 @@ const STORAGE_KEY_ENABLED = 'mehestan_notif_enabled';
 const STORAGE_KEY_DISPATCHED = 'mehestan_dispatched_notifs';
 
 /**
- * بررسی پشتیبانی مرورگر از اعلان‌ها
+ * بررسی پشتیبانی سیستم یا مرورگر از اعلان‌ها
  */
 export function isNotificationSupported() {
+  if (typeof window !== 'undefined' && window.NativeNotifier) return true;
   return typeof window !== 'undefined' && 'Notification' in window;
 }
 
 /**
- * وضعیت مجوز اعلان مرورگر
+ * وضعیت مجوز اعلان
  */
 export function getNotificationPermission() {
+  if (typeof window !== 'undefined' && window.NativeNotifier) return 'granted';
   if (!isNotificationSupported()) return 'unsupported';
   return Notification.permission; // 'granted' | 'denied' | 'default'
 }
@@ -29,6 +31,12 @@ export function getNotificationPermission() {
  * درخواست مجوز نمایش اعلان از کاربر
  */
 export async function requestNotificationPermission() {
+  if (typeof window !== 'undefined' && window.NativeNotifier && typeof window.NativeNotifier.requestPermission === 'function') {
+    try {
+      window.NativeNotifier.requestPermission();
+      return true;
+    } catch {}
+  }
   if (!isNotificationSupported()) return false;
   try {
     const res = await Notification.requestPermission();
@@ -57,26 +65,39 @@ export function setMoodleNotificationEnabled(enabled) {
 }
 
 /**
- * ارسال اعلان مستقیم سیستمی در دستگاه
+ * ارسال اعلان مستقیم سیستمی در دستگاه (اندروید نیتیو یا وب)
  */
 export function sendNativeNotification(title, body = '', tag = 'moodle-general') {
-  if (!isNotificationSupported() || Notification.permission !== 'granted') return false;
-
   const cleanTitle = stripHtml(title).slice(0, 80);
   const cleanBody = stripHtml(body).slice(0, 180);
 
-  try {
-    new Notification(cleanTitle, {
-      body: cleanBody,
-      tag: tag,
-      icon: '/favicon.ico',
-      badge: '/favicon.ico',
-    });
-    return true;
-  } catch (err) {
-    console.warn('Native notification dispatch failed:', err);
-    return false;
+  // ۱. پشتیبانی از کلاینت نیتیو اندروید
+  if (typeof window !== 'undefined' && window.NativeNotifier && typeof window.NativeNotifier.showNotification === 'function') {
+    try {
+      const ok = window.NativeNotifier.showNotification(cleanTitle, cleanBody, Math.floor(Math.random() * 100000));
+      if (ok) return true;
+    } catch (e) {
+      console.warn('NativeNotifier showNotification failed:', e);
+    }
   }
+
+  // ۲. ارسال در محیط وب
+  if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification(cleanTitle, {
+        body: cleanBody,
+        tag: tag,
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+      });
+      return true;
+    } catch (err) {
+      console.warn('Native notification dispatch failed:', err);
+      return false;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -84,7 +105,16 @@ export function sendNativeNotification(title, body = '', tag = 'moodle-general')
  */
 export async function testMoodleNotification() {
   if (!isNotificationSupported()) {
-    throw new Error('مرورگر شما از اعلان‌های سیستمی پشتیبانی نمی‌کند.');
+    throw new Error('دستگاه یا مرورگر شما از اعلان‌های سیستمی پشتیبانی نمی‌کند.');
+  }
+
+  if (typeof window !== 'undefined' && window.NativeNotifier) {
+    window.NativeNotifier.requestPermission();
+    return sendNativeNotification(
+      'اعلان آزمایشی سامانه مودل مهستان',
+      'ارتباط اعلان‌های دانشگاهی در اندروید با موفقیت فعال شد. اطلاعیه‌ها و پیام‌های جدید به همین شیوه ارسال خواهند شد.',
+      'moodle-test'
+    );
   }
 
   if (Notification.permission !== 'granted') {
