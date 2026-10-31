@@ -158,7 +158,7 @@ export default function HomeScreen({ onSelectCourse, onGoToAssignments }) {
               >
                 <div className="flex items-start justify-between gap-2 min-w-0">
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/25 shrink-0">
-                    {cleanCourseCode(course.shortname)}
+                    {cleanCourseCode(course.shortname || course.fullname)}
                   </span>
                   {typeof course.progress === 'number' && !isNaN(course.progress) && course.progress > 0 ? (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary-soft text-secondary shrink-0 font-mono">

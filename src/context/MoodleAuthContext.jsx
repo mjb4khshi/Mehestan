@@ -147,7 +147,7 @@ export function MoodleAuthProvider({ children }) {
   const [siteInfo, setSiteInfo] = useState(null);
   const [courses, setCourses] = useState(getCachedCourses);
   const [assignments, setAssignments] = useState(getCachedAssignments);
-  const [quizzes, setQuizzes] = useState(DEMO_QUIZZES);
+  const [quizzes, setQuizzes] = useState(() => (getMoodleSession()?.isDemo ? DEMO_QUIZZES : []));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -188,6 +188,30 @@ export function MoodleAuthProvider({ children }) {
       }
       setAssignments(flattened);
       cacheAssignments(flattened);
+    }
+
+    // بارگذاری آزمون‌ها و کوییزهای رسمی دوره‌ها
+    try {
+      const realQuizzes = [];
+      for (const c of userCourses) {
+        try {
+          const qRes = await getCourseQuizzes(siteUrl, token, c.id);
+          if (qRes && Array.isArray(qRes.quizzes)) {
+            qRes.quizzes.forEach((q) => {
+              realQuizzes.push({
+                ...q,
+                courseName: c.fullname,
+                courseShortName: c.shortname,
+              });
+            });
+          }
+        } catch {
+          // در صورت عدم دسترسی یا غیرفعال بودن وب‌سرویس آزمون برای این درس
+        }
+      }
+      setQuizzes(realQuizzes);
+    } catch {
+      setQuizzes([]);
     }
 
     return true;
@@ -266,6 +290,7 @@ export function MoodleAuthProvider({ children }) {
     if (session.isDemo) {
       setCourses(DEMO_COURSES);
       setAssignments(DEMO_ASSIGNMENTS);
+      setQuizzes(DEMO_QUIZZES);
       return;
     }
     setLoading(true);

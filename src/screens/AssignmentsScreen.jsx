@@ -54,17 +54,24 @@ export default function AssignmentsScreen() {
 
   return (
     <div className="p-3.5 sm:p-4 space-y-4 max-w-2xl mx-auto min-w-0">
-      {/* سوییچ نوع فعالیت: تکالیف یا آزمون‌های آنلاین سبک سروستان */}
-      <div className="sarv-seg">
+      {/* سوییچ نوع فعالیت: تکالیف یا آزمون‌های آنلاین با مستطیل لغزان نرم سبک سروستان */}
+      <div className="sarv-seg relative">
         <button
           type="button"
           onClick={() => setActivityType('assign')}
-          className={`py-2 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer ${
+          className={`relative flex-1 py-2 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer z-10 ${
             activityType === 'assign'
-              ? 'bg-primary text-primary-content shadow-sm'
-              : 'text-neutral hover:text-base-content hover:bg-base-500/20'
+              ? 'text-primary-content'
+              : 'text-neutral hover:text-base-content'
           }`}
         >
+          {activityType === 'assign' && (
+            <motion.div
+              layoutId="assignActivityTabIndicator"
+              className="absolute inset-0 bg-primary rounded-xl shadow-xs -z-10"
+              transition={{ type: 'spring', bounce: 0.15, duration: 0.25 }}
+            />
+          )}
           <CheckSquare className="w-4 h-4" />
           <span>تکالیف درسی ({toFaDigits(assignments.length)})</span>
         </button>
@@ -72,12 +79,19 @@ export default function AssignmentsScreen() {
         <button
           type="button"
           onClick={() => setActivityType('quiz')}
-          className={`py-2 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer ${
+          className={`relative flex-1 py-2 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer z-10 ${
             activityType === 'quiz'
-              ? 'bg-primary text-primary-content shadow-sm'
-              : 'text-neutral hover:text-base-content hover:bg-base-500/20'
+              ? 'text-primary-content'
+              : 'text-neutral hover:text-base-content'
           }`}
         >
+          {activityType === 'quiz' && (
+            <motion.div
+              layoutId="assignActivityTabIndicator"
+              className="absolute inset-0 bg-primary rounded-xl shadow-xs -z-10"
+              transition={{ type: 'spring', bounce: 0.15, duration: 0.25 }}
+            />
+          )}
           <HelpCircle className="w-4 h-4" />
           <span>آزمون‌ها و کوییزها ({toFaDigits(quizzes.length)})</span>
         </button>
@@ -85,41 +99,64 @@ export default function AssignmentsScreen() {
 
       {activityType === 'assign' ? (
         <>
-          {/* فیلترها و دکمه انتقال کلی به سروستان */}
+          {/* فیلترها با مستطیل لغزان و دکمه انتقال کلی به سروستان */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="sarv-seg text-xs">
+            <div className="sarv-seg text-xs relative">
               <button
                 type="button"
                 onClick={() => setFilter('pending')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
+                className={`relative px-3 py-1.5 rounded-xl font-bold transition cursor-pointer z-10 ${
                   filter === 'pending'
-                    ? 'bg-primary text-primary-content shadow-sm'
+                    ? 'text-primary-content'
                     : 'text-neutral hover:text-base-content'
                 }`}
               >
-                در انتظار انجام ({toFaDigits(assignments.filter((a) => a.duedate && a.duedate > nowSec).length)})
+                {filter === 'pending' && (
+                  <motion.div
+                    layoutId="assignFilterTabIndicator"
+                    className="absolute inset-0 bg-primary rounded-xl shadow-xs -z-10"
+                    transition={{ type: 'spring', bounce: 0.15, duration: 0.25 }}
+                  />
+                )}
+                <span>در انتظار انجام ({toFaDigits(assignments.filter((a) => a.duedate && a.duedate > nowSec).length)})</span>
               </button>
+
               <button
                 type="button"
                 onClick={() => setFilter('all')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
+                className={`relative px-3 py-1.5 rounded-xl font-bold transition cursor-pointer z-10 ${
                   filter === 'all'
-                    ? 'bg-primary text-primary-content shadow-sm'
+                    ? 'text-primary-content'
                     : 'text-neutral hover:text-base-content'
                 }`}
               >
-                همه ({toFaDigits(assignments.length)})
+                {filter === 'all' && (
+                  <motion.div
+                    layoutId="assignFilterTabIndicator"
+                    className="absolute inset-0 bg-primary rounded-xl shadow-xs -z-10"
+                    transition={{ type: 'spring', bounce: 0.15, duration: 0.25 }}
+                  />
+                )}
+                <span>همه ({toFaDigits(assignments.length)})</span>
               </button>
+
               <button
                 type="button"
                 onClick={() => setFilter('past')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
+                className={`relative px-3 py-1.5 rounded-xl font-bold transition cursor-pointer z-10 ${
                   filter === 'past'
-                    ? 'bg-primary text-primary-content shadow-sm'
+                    ? 'text-primary-content'
                     : 'text-neutral hover:text-base-content'
                 }`}
               >
-                گذشته
+                {filter === 'past' && (
+                  <motion.div
+                    layoutId="assignFilterTabIndicator"
+                    className="absolute inset-0 bg-primary rounded-xl shadow-xs -z-10"
+                    transition={{ type: 'spring', bounce: 0.15, duration: 0.25 }}
+                  />
+                )}
+                <span>گذشته</span>
               </button>
             </div>
 
@@ -174,7 +211,7 @@ export default function AssignmentsScreen() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1 min-w-0 flex-1">
                         <span className="text-[10px] text-primary font-bold bg-primary/10 px-2 py-0.5 rounded-full inline-block">
-                          {cleanPersianText(a.courseShortName || a.courseName)}
+                          {cleanCourseName(a.courseName || a.courseShortName)}
                         </span>
                         <h3 className="text-xs font-black text-base-content group-hover:text-primary transition leading-relaxed">
                           {cleanPersianText(a.name)}

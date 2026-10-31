@@ -24,6 +24,8 @@ import {
   Heart,
   Globe,
   ExternalLink,
+  Rocket,
+  RefreshCw,
 } from 'lucide-react';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
 import { exportAllAssignmentsToSarvestan, syncAllWithSarvestan, exportAssignmentsAsIcs } from '../services/sarvestanBridge';
@@ -36,6 +38,8 @@ import {
   requestNotificationPermission,
 } from '../services/moodleNotifications';
 import DocumentViewerModal from '../components/DocumentViewerModal';
+import UpdateModal from '../components/UpdateModal';
+import { checkForUpdate, CURRENT_VERSION } from '../services/updater';
 import { cleanPersianText, toFaDigits, formatFileSizeFa } from '../utils/persianUtils';
 
 export default function SettingsScreen() {
@@ -50,6 +54,38 @@ export default function SettingsScreen() {
   const [loadingBadges, setLoadingBadges] = useState(false);
   const [downloadingUrl, setDownloadingUrl] = useState(null);
   const [previewFile, setPreviewFile] = useState(null);
+
+  // وضعیت به‌روزرسانی درون‌برنامه‌ای مشابه سروستان
+  const [updateState, setUpdateState] = useState({
+    checking: false,
+    checked: false,
+    hasUpdate: false,
+    latestRelease: null,
+    error: null,
+  });
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
+
+  const handleCheckUpdate = async (openModalIfUpdate = true) => {
+    if (updateState.checking) return;
+    setUpdateState((s) => ({ ...s, checking: true, error: null }));
+    const res = await checkForUpdate();
+    setUpdateState({
+      checking: false,
+      checked: true,
+      hasUpdate: res.hasUpdate,
+      latestRelease: res.latestRelease,
+      error: res.error,
+    });
+    if (res.hasUpdate && openModalIfUpdate && res.latestRelease) {
+      setUpdateModalOpen(true);
+    } else if (!res.hasUpdate && !res.error) {
+      setMsg('مهستان شما به آخرین نسخه رسمی به‌روز است.');
+      setTimeout(() => setMsg(''), 3000);
+    } else if (res.error) {
+      setMsg(res.error);
+      setTimeout(() => setMsg(''), 3500);
+    }
+  };
 
   const handleToggleNotifs = async () => {
     const next = !notifsEnabled;
@@ -192,6 +228,177 @@ export default function SettingsScreen() {
               {session?.siteUrl}
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* کارت دونیت (حمایت از توسعه — دارمت) عین سروستان */}
+      <a
+        href="https://daramet.com/mjb4khshi"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="sarv-card p-3 flex items-center justify-between gap-3 border border-rose-500/20 bg-gradient-to-l from-rose-500/5 via-base-100 to-amber-500/5 hover:border-rose-500/40 active:scale-[0.99] transition-all group"
+      >
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="w-8 h-8 rounded-xl bg-rose-500/15 text-rose-500 grid place-items-center shrink-0 group-hover:scale-105 transition-transform">
+            <Heart className="w-4 h-4 fill-rose-500" />
+          </span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[13px] font-bold text-base-content truncate">حمایت از توسعه سروستان و مهستان</span>
+              <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-md bg-rose-500/15 text-rose-500 shrink-0">
+                دونیت
+              </span>
+            </div>
+            <p className="text-[10.5px] text-neutral truncate mt-0.5">
+              پروژه‌های رایگان و مستقل؛ با یک قهوه دلگرمی ببخشید
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 text-[11.5px] font-bold text-rose-600 dark:text-rose-400 shrink-0 px-2.5 py-1.5 rounded-lg bg-rose-500/10 group-hover:bg-rose-500/20 transition-colors">
+          <span>دارمت</span>
+          <ExternalLink className="w-3.5 h-3.5" />
+        </div>
+      </a>
+
+      {/* پیوندهای اکوسیستم سروستان (وب‌سایت، دانلود و کانال تلگرام) */}
+      <div className="sarv-card overflow-hidden shadow-sm divide-y divide-base-500/20">
+        <div className="p-3 bg-base-500/10 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <svg
+              viewBox="0 0 1080 1080"
+              className="w-4.5 h-4.5 drop-shadow-sm text-emerald-600"
+              fill="currentColor"
+            >
+              <path d="M540,167.08 C540,167.08 213.25,912.92 540,912.92 C866.75,912.92 540,167.08 540,167.08 Z" />
+            </svg>
+            <h3 className="text-xs font-black text-base-content">
+              اکوسیستم سروستان (Sarvestan)
+            </h3>
+          </div>
+          <span className="text-[10px] text-neutral font-bold">سامانه همراه دانشجو</span>
+        </div>
+
+        {/* وب‌سایت رسمی سروستان */}
+        <a
+          href="https://mjb4khshi.github.io/sarvestan"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center justify-between gap-3 p-3 text-right hover:bg-base-500/20 transition-colors cursor-pointer group"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="w-8 h-8 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0 group-hover:scale-105 transition-transform">
+              <Globe className="w-4 h-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-base-content">وب‌سایت رسمی سروستان</p>
+              <p className="text-[10.5px] text-neutral mt-0.5 truncate">mjb4khshi.github.io/sarvestan · معرفی و امکانات</p>
+            </div>
+          </div>
+          <ExternalLink className="w-3.5 h-3.5 text-neutral shrink-0" />
+        </a>
+
+        {/* دانلود سروستان */}
+        <a
+          href="https://github.com/mjb4khshi/sarvestan/releases"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center justify-between gap-3 p-3 text-right hover:bg-base-500/20 transition-colors cursor-pointer group"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="w-8 h-8 rounded-xl bg-success/15 text-success grid place-items-center shrink-0 group-hover:scale-105 transition-transform">
+              <Download className="w-4 h-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-base-content">دانلود اپلیکیشن و افزونه سروستان</p>
+              <p className="text-[10.5px] text-neutral mt-0.5 truncate">نسخه اندروید، وب‌اپ PWA و اکستنشن مرورگر</p>
+            </div>
+          </div>
+          <ExternalLink className="w-3.5 h-3.5 text-neutral shrink-0" />
+        </a>
+
+        {/* کانال تلگرام سروستان */}
+        <a
+          href="https://t.me/s4rvest4n"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center justify-between gap-3 p-3 text-right hover:bg-base-500/20 transition-colors cursor-pointer group"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="w-8 h-8 rounded-xl bg-sky-500/15 text-sky-500 grid place-items-center shrink-0 group-hover:scale-105 transition-transform">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
+              </svg>
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs font-bold text-base-content">کانال اطلاع‌رسانی تلگرام</p>
+                <span className="text-[9.5px] font-mono px-1.5 py-0.2 rounded-md bg-sky-500/15 text-sky-500 font-bold">@s4rvest4n</span>
+              </div>
+              <p className="text-[10.5px] text-neutral mt-0.5 truncate">t.me/s4rvest4n · اخبار آپدیت‌ها و انتشارات</p>
+            </div>
+          </div>
+          <ExternalLink className="w-3.5 h-3.5 text-neutral shrink-0" />
+        </a>
+      </div>
+
+      {/* بخش به‌روزرسانی و نسخه درون‌برنامه‌ای مهستان عین سروستان */}
+      <div className="sarv-card p-4 space-y-3 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Rocket className="w-4 h-4 text-primary" />
+            <h3 className="text-xs font-black text-base-content">نسخه و به‌روزرسانی برنامه</h3>
+          </div>
+          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-base-500/25 text-neutral">
+            نسخه {toFaDigits(CURRENT_VERSION)}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-base-500/10 border border-base-500/20">
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-base-content">
+              {updateState.checking
+                ? 'در حال بررسی آخرین انتشار در گیت‌هاب...'
+                : updateState.hasUpdate
+                ? `نسخه جدید ${toFaDigits(updateState.latestRelease?.tagName)} منتشر گردید`
+                : updateState.checked
+                ? 'مهستان شما به آخرین نسخه رسمی به‌روز است'
+                : 'بررسی نسخه‌های جدید و آپدیت‌ها'}
+            </p>
+            <p className="text-[10.5px] text-neutral mt-0.5">
+              مخزن رسمی گیت‌هاب (mjb4khshi/Mehestan)
+            </p>
+          </div>
+
+          {updateState.hasUpdate ? (
+            <button
+              type="button"
+              onClick={() => setUpdateModalOpen(true)}
+              className="shrink-0 px-3.5 py-1.5 rounded-xl bg-primary text-primary-content font-bold text-xs shadow-sm hover:brightness-110 active:scale-95 transition flex items-center gap-1.5 cursor-pointer"
+            >
+              <Rocket className="w-3.5 h-3.5" />
+              <span>به‌روزرسانی</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => handleCheckUpdate(true)}
+              disabled={updateState.checking}
+              className="shrink-0 px-3 py-1.5 rounded-xl bg-base-500/20 hover:bg-base-500/35 text-base-content font-bold text-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              {updateState.checking ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>در حال بررسی...</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>{updateState.checked ? 'بررسی مجدد' : 'بررسی نسخه'}</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
@@ -399,172 +606,20 @@ export default function SettingsScreen() {
         </div>
       </div>
 
-      {/* کارت دونیت (حمایت از توسعه — دارمت) عین سروستان */}
-      <a
-        href="https://daramet.com/mjb4khshi"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="sarv-card p-3 flex items-center justify-between gap-3 border border-rose-500/20 bg-gradient-to-l from-rose-500/5 via-base-100 to-amber-500/5 hover:border-rose-500/40 active:scale-[0.99] transition-all group"
-      >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="w-8 h-8 rounded-xl bg-rose-500/15 text-rose-500 grid place-items-center shrink-0 group-hover:scale-105 transition-transform">
-            <Heart className="w-4 h-4 fill-rose-500" />
-          </span>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[13px] font-bold text-base-content truncate">حمایت از توسعه سروستان و مهستان</span>
-              <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-md bg-rose-500/15 text-rose-500 shrink-0">
-                دونیت
-              </span>
-            </div>
-            <p className="text-[10.5px] text-neutral truncate mt-0.5">
-              پروژه‌های رایگان و مستقل؛ با یک قهوه دلگرمی ببخشید
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1 text-[11.5px] font-bold text-rose-600 dark:text-rose-400 shrink-0 px-2.5 py-1.5 rounded-lg bg-rose-500/10 group-hover:bg-rose-500/20 transition-colors">
-          <span>دارمت</span>
-          <ExternalLink className="w-3.5 h-3.5" />
-        </div>
-      </a>
-
-      {/* پیوندهای اکوسیستم سروستان (وب‌سایت و دانلود) */}
-      <div className="sarv-card overflow-hidden shadow-sm divide-y divide-base-500/20">
-        <div className="p-3 bg-base-500/10 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <svg
-              viewBox="0 0 1080 1080"
-              className="w-4.5 h-4.5 drop-shadow-sm text-emerald-600"
-              fill="currentColor"
-            >
-              <path d="M540,167.08 C540,167.08 213.25,912.92 540,912.92 C866.75,912.92 540,167.08 540,167.08 Z" />
-            </svg>
-            <h3 className="text-xs font-black text-base-content">
-              اکوسیستم سروستان (Sarvestan)
-            </h3>
-          </div>
-          <span className="text-[10px] text-neutral font-bold">سامانه همراه دانشجو</span>
-        </div>
-
-        {/* وب‌سایت رسمی سروستان */}
-        <a
-          href="https://mjb4khshi.github.io/sarvestan"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full flex items-center justify-between gap-3 p-3 text-right hover:bg-base-500/20 transition-colors cursor-pointer group"
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="w-8 h-8 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0 group-hover:scale-105 transition-transform">
-              <Globe className="w-4 h-4" />
-            </span>
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-base-content">وب‌سایت رسمی سروستان</p>
-              <p className="text-[10.5px] text-neutral mt-0.5 truncate">mjb4khshi.github.io/sarvestan · معرفی و امکانات</p>
-            </div>
-          </div>
-          <ExternalLink className="w-3.5 h-3.5 text-neutral shrink-0" />
-        </a>
-
-        {/* دانلود سروستان */}
-        <a
-          href="https://github.com/mjb4khshi/sarvestan/releases"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full flex items-center justify-between gap-3 p-3 text-right hover:bg-base-500/20 transition-colors cursor-pointer group"
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="w-8 h-8 rounded-xl bg-success/15 text-success grid place-items-center shrink-0 group-hover:scale-105 transition-transform">
-              <Download className="w-4 h-4" />
-            </span>
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-base-content">دانلود اپلیکیشن و افزونه سروستان</p>
-              <p className="text-[10.5px] text-neutral mt-0.5 truncate">نسخه اندروید، وب‌اپ PWA و اکستنشن مرورگر</p>
-            </div>
-          </div>
-          <ExternalLink className="w-3.5 h-3.5 text-neutral shrink-0" />
-        </a>
-
-        {/* کانال تلگرام سروستان */}
-        <a
-          href="https://t.me/s4rvest4n"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full flex items-center justify-between gap-3 p-3 text-right hover:bg-base-500/20 transition-colors cursor-pointer group"
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="w-8 h-8 rounded-xl bg-sky-500/15 text-sky-500 grid place-items-center shrink-0 group-hover:scale-105 transition-transform">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
-              </svg>
-            </span>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <p className="text-xs font-bold text-base-content">کانال اطلاع‌رسانی تلگرام</p>
-                <span className="text-[9.5px] font-mono px-1.5 py-0.2 rounded-md bg-sky-500/15 text-sky-500 font-bold">@s4rvest4n</span>
-              </div>
-              <p className="text-[10.5px] text-neutral mt-0.5 truncate">t.me/s4rvest4n · اخبار آپدیت‌ها و انتشارات</p>
-            </div>
-          </div>
-          <ExternalLink className="w-3.5 h-3.5 text-neutral shrink-0" />
-        </a>
-      </div>
-
-      {/* هویت بصری و درباره مهستان */}
-      <div className="sarv-card p-4 space-y-2.5 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <svg
-              viewBox="0 0 261.778 284.888"
-              className="w-5 h-5 drop-shadow-sm"
-              style={{ fill: 'var(--color-primary, #0066a4)' }}
-              aria-label="مهستان"
-            >
-              <path
-                d="M249.915,219.637A142.574,142.574,0,0,1,9.144,229.3a10.687,10.687,0,0,1,5.2-16.123c53.684-19.214,82.435-41.48,99.12-73.329,17.565-33.528,22.1-70.255,9.816-120.6A10.687,10.687,0,0,1,134.236,6.046,142.566,142.566,0,0,1,249.915,219.637Z"
-                transform="translate(-7.254 -6.03)"
-              />
-            </svg>
-            <h3 className="text-xs font-black text-base-content">مهستان (Mehestan)</h3>
-          </div>
-          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-base-500/25 text-neutral">
-            نسخه ۱٫۲٫۰
-          </span>
-        </div>
-        <p className="text-[11px] text-neutral leading-relaxed">
-          کلاینت مدرن، سریع و هوشمند سامانه آموزش الکترونیکی و مجازی مودل (Moodle LMS)؛ طراحی شده بر پایه دیزاین‌سیستم سرو و یکپارچه با برنامه سروستان.
-        </p>
-      </div>
-
-      {/* پاک‌سازی حافظه موقت و خروج */}
-      <div className="sarv-card p-4 space-y-2.5 shadow-sm">
-        <h3 className="text-xs font-black text-base-content">عملیات حساب و حافظه</h3>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleClearCache}
-            className="flex-1 py-2.5 rounded-xl border border-base-500/30 hover:bg-base-500/20 text-xs font-bold text-neutral hover:text-base-content transition flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <Trash2 className="w-4 h-4" />
-            <span>پاک‌سازی کش دروس</span>
-          </button>
-          <button
-            type="button"
-            onClick={logout}
-            className="flex-1 py-2.5 rounded-xl bg-error/15 border border-error/30 hover:bg-error/25 text-xs font-black text-error transition flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>خروج از حساب</span>
-          </button>
-        </div>
-      </div>
-
       {/* مودال پیش‌نمایش فایل‌های شخصی ابری */}
       {previewFile && (
         <DocumentViewerModal
           file={previewFile}
           token={session?.token}
           onClose={() => setPreviewFile(null)}
+        />
+      )}
+
+      {/* مودال بررسی و دریافت به‌روزرسانی */}
+      {updateModalOpen && updateState.latestRelease && (
+        <UpdateModal
+          release={updateState.latestRelease}
+          onClose={() => setUpdateModalOpen(false)}
         />
       )}
     </div>

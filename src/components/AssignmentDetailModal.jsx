@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Clock,
@@ -295,9 +296,9 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
   const attemptNum = lastAttempt?.submission?.attemptnumber !== undefined ? lastAttempt.submission.attemptnumber + 1 : 1;
   const maxAttempts = assignment.maxattempts && assignment.maxattempts > 0 ? assignment.maxattempts : 'نامحدود';
 
-  return (
+  const modalNode = (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+      <div className="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-4 pb-20 sm:pb-4 pointer-events-auto">
         {/* پس‌زمینه تاریک با انیمیشن فید */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -313,7 +314,7 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 24 }}
           transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-          className="sarv-card relative z-10 w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border border-base-500/40"
+          className="sarv-card relative z-10 w-full max-w-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-base-500/40 bg-base text-base-content"
         >
           {/* سربرگ پنجره */}
           <div className="p-4 border-b border-base-500/20 flex items-center justify-between gap-3 bg-base-500/10">
@@ -879,7 +880,7 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
           </div>
 
           {/* پاورقی دکمه‌های عملیاتی سبک سروستان */}
-          <div className="p-3.5 border-t border-base-500/20 bg-base-500/10 flex items-center justify-between gap-2 flex-wrap">
+          <div className="p-3.5 border-t border-base-500/20 bg-base-100 dark:bg-base flex items-center justify-between gap-2 flex-wrap shrink-0">
             <motion.button
               whileTap={{ scale: 0.96 }}
               type="button"
@@ -940,4 +941,10 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
       </div>
     </AnimatePresence>
   );
+
+  if (typeof document !== 'undefined') {
+    return createPortal(modalNode, document.body);
+  }
+
+  return modalNode;
 }

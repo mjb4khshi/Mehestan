@@ -104,6 +104,21 @@ export default function CourseDetailScreen({ course, onBack }) {
   const [simulatedFinalScore, setSimulatedFinalScore] = useState(16);
   const [showSimulator, setShowSimulator] = useState(false);
 
+  // شناسایی هوشمند ماژول کلاس مجازی (ادوبی کانکت / بیگ‌بلو‌باتن / زوم)
+  const vclassModule = React.useMemo(() => {
+    for (const sec of contents) {
+      if (Array.isArray(sec.modules)) {
+        const found = sec.modules.find(
+          (m) =>
+            ['adobeconnect', 'bigbluebuttonbn', 'zoom', 'vclass', 'meeting', 'collaborate'].includes(m.modname) ||
+            /کلاس\s*مجازی|جلسه\s*آنلاین|adobe\s*connect|bigbluebutton/i.test(m.name)
+        );
+        if (found) return found;
+      }
+    }
+    return null;
+  }, [contents]);
+
   // دانلود درون‌برنامه‌ای فایل‌ها
   const [downloadingUrl, setDownloadingUrl] = useState(null);
 
@@ -355,6 +370,13 @@ export default function CourseDetailScreen({ course, onBack }) {
         return <CheckSquare className="w-4 h-4 text-amber-500 shrink-0" />;
       case 'quiz':
         return <HelpCircle className="w-4 h-4 text-purple-500 shrink-0" />;
+      case 'adobeconnect':
+      case 'bigbluebuttonbn':
+      case 'zoom':
+      case 'vclass':
+      case 'meeting':
+      case 'collaborate':
+        return <Video className="w-4 h-4 text-cyan-500 shrink-0" />;
       case 'folder':
         return <Folder className="w-4 h-4 text-primary shrink-0" />;
       case 'url':
@@ -430,8 +452,43 @@ export default function CourseDetailScreen({ course, onBack }) {
         </h2>
       </motion.div>
 
-      {/* تب‌های رسمی ۴گانه درس در اپ مودل — سبک کنترل تقسیم‌شده سروستان */}
-      <div className="sarv-seg">
+      {/* کارت دسترسی سریع به کلاس مجازی دانشگاه در صورت وجود در درس */}
+      {vclassModule && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="sarv-card p-3.5 border-r-4 border-r-cyan-500 bg-cyan-500/10 flex items-center justify-between gap-3 shadow-xs"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-cyan-500 text-white grid place-items-center shrink-0 shadow-xs">
+              <Video className="w-4.5 h-4.5" />
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-xs font-black text-base-content truncate">
+                {cleanPersianText(vclassModule.name)}
+              </h4>
+              <p className="text-[10px] text-neutral truncate">اتاق جلسات آنلاین و کلاس مجازی دانشگاه</p>
+            </div>
+          </div>
+          <a
+            href={
+              vclassModule.url ||
+              (vclassModule.contents && vclassModule.contents[0]?.fileurl) ||
+              `${(session?.siteUrl || 'https://vc.kntu.ac.ir').replace(/\/+$/, '')}/mod/${vclassModule.modname}/view.php?id=${vclassModule.id}`
+            }
+            target="_blank"
+            rel="noreferrer"
+            className="px-3.5 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white font-bold text-xs transition flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm active:scale-95"
+            title="ورود به کلاس مجازی"
+          >
+            <span>ورود به کلاس</span>
+            <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+          </a>
+        </motion.div>
+      )}
+
+      {/* تب‌های رسمی ۴گانه درس در اپ مودل — سبک کنترل تقسیم‌شده با مستطیل لغزان سروستان */}
+      <div className="sarv-seg relative">
         {COURSE_TABS.map((tab) => {
           const { id, label, Icon } = tab;
           const isActive = activeTab === id;
@@ -440,12 +497,19 @@ export default function CourseDetailScreen({ course, onBack }) {
               key={id}
               type="button"
               onClick={() => setActiveTab(id)}
-              className={`py-2 px-1 rounded-xl text-xs font-bold transition flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
+              className={`relative flex-1 py-2 px-1 rounded-xl text-xs font-bold transition flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer z-10 ${
                 isActive
-                  ? 'bg-primary text-primary-content shadow-sm'
-                  : 'text-neutral hover:text-base-content hover:bg-base-500/20'
+                  ? 'text-primary-content'
+                  : 'text-neutral hover:text-base-content'
               }`}
             >
+              {isActive && (
+                <motion.div
+                  layoutId="courseDetailTabIndicator"
+                  className="absolute inset-0 bg-primary rounded-xl shadow-xs -z-10"
+                  transition={{ type: 'spring', bounce: 0.15, duration: 0.25 }}
+                />
+              )}
               <Icon className="w-4 h-4 shrink-0" />
               <span className="truncate text-[11px]">{label}</span>
             </button>
@@ -585,7 +649,16 @@ export default function CourseDetailScreen({ course, onBack }) {
                             );
                           }
 
-                          // برای سایر ماژول‌ها (تکلیف، کوییز، پیوند یا پوشه چندفایله):
+                          // برای سایر ماژول‌ها (تکلیف، کوییز، کلاس مجازی، پیوند یا پوشه چندفایله):
+                          const isVclass =
+                            ['adobeconnect', 'bigbluebuttonbn', 'zoom', 'vclass', 'meeting', 'collaborate', 'webconf'].includes(mod.modname) ||
+                            /کلاس\s*مجازی|جلسه\s*آنلاین|adobe\s*connect|bigbluebutton/i.test(mod.name);
+                          const cleanBase = (session?.siteUrl || 'https://vc.kntu.ac.ir').replace(/\/+$/, '');
+                          const targetUrl =
+                            mod.url ||
+                            (mod.contents && mod.contents[0]?.fileurl) ||
+                            `${cleanBase}/mod/${mod.modname}/view.php?id=${mod.id}`;
+
                           return (
                             <div
                               key={mod.id}
@@ -602,6 +675,8 @@ export default function CourseDetailScreen({ course, onBack }) {
                                           ? 'bg-amber-500/15 text-amber-500 border-amber-500/30'
                                           : isQuiz
                                           ? 'bg-purple-500/15 text-purple-500 border-purple-500/30'
+                                          : isVclass
+                                          ? 'bg-cyan-500/15 text-cyan-500 border-cyan-500/30'
                                           : isUrl
                                           ? 'bg-blue-500/15 text-blue-500 border-blue-500/30'
                                           : isFolder
@@ -652,9 +727,21 @@ export default function CourseDetailScreen({ course, onBack }) {
                                       <HelpCircle className="w-3.5 h-3.5" />
                                       <span>ورود به آزمون (کوییز)</span>
                                     </motion.button>
-                                  ) : isUrl && mod.url ? (
+                                  ) : isVclass ? (
                                     <a
-                                      href={mod.url}
+                                      href={targetUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="px-3.5 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-600 text-[11px] font-black transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                                      title="ورود مستقیم به کلاس مجازی دانشگاه"
+                                    >
+                                      <Video className="w-3.5 h-3.5" />
+                                      <span>ورود به کلاس مجازی</span>
+                                      <ExternalLink className="w-3 h-3 opacity-60" />
+                                    </a>
+                                  ) : isUrl || mod.url ? (
+                                    <a
+                                      href={targetUrl}
                                       target="_blank"
                                       rel="noreferrer"
                                       className="px-3 py-1.5 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 text-blue-600 text-[11px] font-black transition flex items-center gap-1.5 cursor-pointer shadow-xs"

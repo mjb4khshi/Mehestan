@@ -168,20 +168,10 @@ export default function DocumentViewerModal({ file, token, onClose }) {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-          style={{
-            backgroundColor: 'var(--theme-color-base, #ffffff)',
-            color: 'var(--theme-color-base-content, #0f172a)',
-          }}
-          className="relative w-full max-w-4xl h-[88vh] max-h-[850px] rounded-3xl shadow-2xl border border-base-500/40 flex flex-col overflow-hidden z-10"
+          className="relative w-full max-w-4xl h-[88vh] max-h-[850px] rounded-3xl shadow-2xl border border-base-500/50 flex flex-col overflow-hidden z-10 bg-base text-base-content"
         >
-          {/* هدر پیش‌نمایش مات */}
-          <div
-            style={{
-              backgroundColor:
-                'color-mix(in oklab, var(--theme-color-base-500, #cbd5e1) 22%, var(--theme-color-base, #ffffff))',
-            }}
-            className="p-3.5 sm:p-4 border-b border-base-500/30 flex items-center justify-between gap-3 shrink-0"
-          >
+          {/* هدر پیش‌نمایش کاملاً مات */}
+          <div className="p-3.5 sm:p-4 border-b border-base-500/30 flex items-center justify-between gap-3 shrink-0 bg-base-100">
             <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <div className="w-9 h-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
                 {isImage ? (
@@ -264,17 +254,11 @@ export default function DocumentViewerModal({ file, token, onClose }) {
           </div>
 
           {/* بدنه محتوای سند کاملاً مات و غیرشفاف */}
-          <div
-            style={{
-              backgroundColor:
-                'color-mix(in oklab, var(--theme-color-base-500, #cbd5e1) 12%, var(--theme-color-base, #ffffff))',
-            }}
-            className="flex-1 overflow-hidden relative flex items-center justify-center p-2 sm:p-4"
-          >
+          <div className="flex-1 overflow-hidden relative flex items-center justify-center p-2 sm:p-4 bg-base">
             {loading ? (
-              <div className="flex flex-col items-center justify-center gap-2.5 text-neutral text-xs">
+              <div className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl bg-base-100 border border-base-500/30 text-neutral text-xs shadow-md">
                 <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                <span>در حال آماده‌سازی و خواندن سند...</span>
+                <span className="font-bold text-base-content">در حال آماده‌سازی و خواندن سند...</span>
               </div>
             ) : error ? (
               <div className="max-w-md p-6 rounded-2xl bg-base-500/15 border border-base-500/25 text-center space-y-3">

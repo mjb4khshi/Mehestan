@@ -55,20 +55,20 @@ export default function BottomNav({ activeTab, onChangeTab, assignmentBadgeCount
                   {isActive && (
                     <motion.span
                       layoutId="navTabActivePill"
-                      className="absolute inset-1 rounded-2xl bg-base-500/35 border border-base-500/50 z-0 shadow-sm"
-                      transition={{ type: 'tween', duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
+                      className="absolute inset-1 rounded-2xl bg-primary/15 border border-primary/25 z-0 shadow-xs"
+                      transition={{ type: 'spring', bounce: 0.15, duration: 0.28 }}
                     />
                   )}
 
                   <span
-                    className={`relative z-10 flex flex-col items-center justify-end h-8 transition-colors duration-200 ${
+                    className={`relative z-10 flex items-center justify-center h-8 transition-colors duration-200 ${
                       isActive ? activeColor : ''
                     }`}
                   >
                     <div className="relative">
                       <Icon
                         className={`w-5 h-5 transition-all duration-200 ${
-                          isActive ? 'stroke-[2.4] -translate-y-[1px]' : 'stroke-[1.8] translate-y-0'
+                          isActive ? 'stroke-[2.4] scale-105' : 'stroke-[1.8] scale-100'
                         }`}
                       />
                       {id === 'assignments' && assignmentBadgeCount > 0 && (
@@ -77,16 +77,6 @@ export default function BottomNav({ activeTab, onChangeTab, assignmentBadgeCount
                         </span>
                       )}
                     </div>
-
-                    {/* نقطه نشانگر تب فعال */}
-                    <motion.span
-                      className="w-1.5 h-1.5 rounded-full bg-current shadow-sm mt-[3px]"
-                      animate={{
-                        opacity: isActive ? 1 : 0,
-                        scale: isActive ? 1 : 0.5,
-                      }}
-                      transition={{ type: 'spring', stiffness: 450, damping: 28 }}
-                    />
                   </span>
                 </button>
               );

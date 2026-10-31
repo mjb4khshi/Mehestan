@@ -87,32 +87,48 @@ export function getShortUniversityName(sitename) {
 
 /**
  * پاکسازی و استانداردسازی کد درس دانشگاهی
- * حذف کامل براکت‌ها، اصلاح حروف عربی (ی و ک) و تبدیل به ارقام فارسی
+ * حذف کامل براکت‌ها، استخراج شناسه عددی، اصلاح حروف و تبدیل به ارقام فارسی
  */
 export function cleanCourseCode(code) {
   if (!code) return '';
   let str = cleanPersianText(String(code));
+  
+  // اگر درون براکت قرار دارد، محتوای درون براکت اولویت دارد
+  const bracketMatch = str.match(/\[\s*([\d\u06F0-\u06F9\w_\/.-]+)\s*\]/);
+  if (bracketMatch) {
+    str = bracketMatch[1];
+  } else {
+    str = str.replace(/[\[\]\(\)]/g, '').trim();
+    // اگر همراه نام درس چسبیده است، بخش عددی-شناسه‌ای را استخراج کن
+    const match = str.match(/[\d\u06F0-\u06F9]{2,}[-\d\u06F0-\u06F9]*/);
+    if (match) {
+      str = match[0];
+    }
+  }
+
   str = str.replace(/[\[\]\(\)]/g, '').trim();
-  str = toFaDigits(str);
-  return str;
+  return toFaDigits(str);
 }
 
 /**
  * پاکسازی و استانداردسازی عناوین دروس دانشگاهی
- * اصلاح ی و ک، حذف کامل براکت‌ها، تبدیل کد درس به فارسی و بهینه‌سازی فاصله‌ها
+ * حذف کامل کدهای داخل براکت و شناسه‌های زاید، اصلاح ی و ک، فاصله‌گذاری اصیل و تبدیل ارقام
  */
 export function cleanCourseName(name) {
   if (!name) return '';
   let clean = cleanPersianText(name);
   
-  // تبدیل الگوهای براکت‌دار کد درس مانند [4051] یا [۴۰۵۱] به: کد ۴۰۵۱
-  clean = clean.replace(/\[\s*([0-9\u06F0-\u06F9\w_-]+)\s*\]/g, (match, code) => {
-    const fa = toFaDigits(code.trim());
-    return fa ? `کد ${fa}` : '';
-  });
+  // حذف کامل شناسه‌های داخل براکت از عنوان درس مانند [60-6660102-4051] یا [4051]
+  clean = clean.replace(/\[\s*[\d\u06F0-\u06F9\w_\/.-]+\s*\]/g, '');
 
-  // حذف هرگونه براکت باقیمانده در نام درس
+  // حذف شناسه‌های رقمی طولانی ابتدای عنوان در صورت وجود
+  clean = clean.replace(/^[\d\u06F0-\u06F9_-]{5,}\s*[-–:]?\s*/, '');
+
+  // حذف هرگونه براکت باقیمانده
   clean = clean.replace(/[\[\]]/g, '');
+
+  // اصلاح اتصال نادرست حرف ربط «و» در کلمات درسی دانشگاهی مانند «ومقاومت» به «و مقاومت»
+  clean = clean.replace(/([\u0600-\u06FF])\s*و([\u0600-\u06FF]{3,})/g, '$1 و $2');
 
   // تبدیل تمام ارقام لاتین موجود به فارسی
   clean = toFaDigits(clean);

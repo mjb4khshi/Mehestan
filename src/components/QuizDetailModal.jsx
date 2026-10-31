@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Clock,
@@ -83,14 +84,14 @@ export default function QuizDetailModal({ quiz, courseName, onClose }) {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
+  const modalNode = (
+    <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center p-0 sm:p-4 pb-20 sm:pb-4 bg-black/65 backdrop-blur-md">
       <motion.div
         initial={{ opacity: 0, y: 40, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 30, scale: 0.98 }}
         transition={{ type: 'spring', damping: 26, stiffness: 320 }}
-        className="w-full max-w-lg max-h-[92vh] flex flex-col bg-base text-base-content rounded-t-3xl sm:rounded-3xl border border-base-500/40 shadow-2xl overflow-hidden"
+        className="w-full max-w-lg max-h-[85vh] sm:max-h-[90vh] flex flex-col bg-base text-base-content rounded-t-3xl sm:rounded-3xl border border-base-500/40 shadow-2xl overflow-hidden"
       >
         {/* نوار سربرگ */}
         <div className="p-4 sm:p-5 border-b border-base-500/30 flex items-center justify-between gap-3 bg-base-500/10">
@@ -259,4 +260,10 @@ export default function QuizDetailModal({ quiz, courseName, onClose }) {
       </motion.div>
     </div>
   );
+
+  if (typeof document !== 'undefined') {
+    return createPortal(modalNode, document.body);
+  }
+
+  return modalNode;
 }
