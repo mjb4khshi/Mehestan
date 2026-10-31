@@ -316,7 +316,7 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 24 }}
           transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-          className={`sarv-card relative z-10 w-full max-w-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-base-500/40 bg-base text-base-content border-r-4 ${courseToneStyle.borderRight}`}
+          className="sarv-card relative z-10 w-full max-w-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-base-500/40 bg-base text-base-content"
         >
           {/* سربرگ پنجره */}
           <div className="p-4 border-b border-base-500/20 flex items-center justify-between gap-3 bg-base-500/10">

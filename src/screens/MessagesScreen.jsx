@@ -368,25 +368,25 @@ export default function MessagesScreen() {
           <div className="space-y-4">
             {/* سربرگ پیام‌رسان */}
             <div className="sarv-card p-4 space-y-3 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-2xl bg-secondary-soft text-secondary border border-secondary/25 grid place-items-center shadow-sm">
+              <div className="flex items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div className="w-10 h-10 rounded-2xl bg-secondary-soft text-secondary border border-secondary/25 grid place-items-center shadow-sm shrink-0">
                     <MessageSquare className="w-5 h-5" />
                   </div>
-                  <div>
-                    <h2 className="text-sm font-black text-base-content">پیام‌رسان دانشگاهی</h2>
-                    <p className="text-xs text-neutral">مکالمات مستقیم با اساتید، دستیاران و هم‌کلاسی‌ها</p>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-sm font-black text-base-content truncate">پیام‌رسان دانشگاهی</h2>
+                    <p className="text-xs text-neutral truncate">مکالمات مستقیم با اساتید، دستیاران و هم‌کلاسی‌ها</p>
                   </div>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => setShowNewChatModal(true)}
-                  className="px-3 py-1.5 rounded-xl bg-primary text-primary-content text-xs font-bold hover:brightness-110 active:scale-95 transition flex items-center gap-1.5 cursor-pointer shadow-md"
+                  className="px-3.5 py-2 rounded-xl bg-primary text-primary-content text-xs font-bold hover:brightness-110 active:scale-95 transition flex items-center gap-1.5 cursor-pointer shadow-md whitespace-nowrap shrink-0"
                   title="شروع گفتگوی جدید"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>پیام جدید</span>
+                  <Plus className="w-3.5 h-3.5 shrink-0" />
+                  <span className="whitespace-nowrap">پیام جدید</span>
                 </button>
               </div>
 
