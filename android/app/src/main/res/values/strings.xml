@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">Mehestan</string>
     <string name="title_activity_main">Mehestan</string>
-    <string name="package_name">ir.mjb4khshi.mehestan</string>
-    <string name="custom_url_scheme">ir.mjb4khshi.mehestan</string>
+    <string name="package_name">ir.mjbakhshi.mehestan</string>
+    <string name="custom_url_scheme">ir.mjbakhshi.mehestan</string>
 </resources>

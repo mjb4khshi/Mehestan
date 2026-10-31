@@ -8,6 +8,24 @@
     <meta name="theme-color" content="#0066a4" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <link rel="apple-touch-icon" href="/logo.svg" />
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('mehestan_theme') || localStorage.getItem('sarvestan_theme');
+          var validThemes = [
+            'persian-light', 'persian-dark', 'tehran', 'tehran-2', 'cyberpunk', 'tokyo-midnight',
+            'ocean-abyss', 'emerald', 'crimson', 'coffee-roast', 'sunset', 'matcha', 'nordic',
+            'batman', 'monochrome', 'monochrome-light'
+          ];
+          var theme = (saved && validThemes.indexOf(saved) !== -1) ? saved : 'persian-dark';
+          document.documentElement.setAttribute('data-theme', theme);
+          document.documentElement.setAttribute('datatheme', theme);
+          var lightThemes = ['persian-light', 'tehran', 'sunset', 'matcha', 'nordic', 'monochrome-light'];
+          var isDark = lightThemes.indexOf(theme) === -1;
+          document.documentElement.setAttribute('data-theme-mode', isDark ? 'dark' : 'light');
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body class="bg-base text-base-content min-h-screen antialiased selection:bg-primary selection:text-primary-content overflow-x-clip font-sans" style="overflow-x: clip;">
     <div id="root"></div>

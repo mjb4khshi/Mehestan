@@ -2,15 +2,10 @@ import React, { useState, useEffect } from 'react';
 import {
   CheckSquare,
   Clock,
-  AlertCircle,
   Share2,
-  Filter,
   CheckCircle2,
   ChevronLeft,
-  Upload,
   HelpCircle,
-  FileQuestion,
-  Award,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
@@ -79,6 +74,9 @@ export default function AssignmentsScreen() {
     return true;
   });
 
+  const pendingCount = assignments.filter((a) => a.duedate && a.duedate > nowSec).length;
+  const pastCount = assignments.filter((a) => a.duedate && a.duedate <= nowSec).length;
+
   const handleExport = (e, assignment) => {
     e.stopPropagation();
     exportAssignmentToSarvestan(assignment, assignment.courseName);
@@ -87,25 +85,18 @@ export default function AssignmentsScreen() {
   };
 
   return (
-    <div className="p-3.5 sm:p-4 space-y-4 max-w-2xl mx-auto min-w-0">
-      {/* سوییچ نوع فعالیت: تکالیف یا آزمون‌های آنلاین با مستطیل لغزان نرم سبک سروستان */}
-      <div className="sarv-seg relative">
+    <div className="p-3.5 sm:p-4 space-y-3.5 max-w-2xl mx-auto min-w-0">
+      {/* ۱. سوییچ سراسری بین تکالیف و آزمون‌ها (عرض کامل و متوازن) */}
+      <div className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-base-500/20 border border-base-500/30">
         <button
           type="button"
           onClick={() => setActivityType('assign')}
-          className={`relative flex-1 py-2 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer z-10 ${
+          className={`py-2 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer ${
             activityType === 'assign'
-              ? 'text-primary-content'
+              ? 'bg-primary text-primary-content shadow-xs'
               : 'text-neutral hover:text-base-content'
           }`}
         >
-          {activityType === 'assign' && (
-            <motion.div
-              layoutId="assignActivityTabIndicator"
-              className="absolute inset-0 bg-primary rounded-xl shadow-xs -z-10"
-              transition={{ type: 'spring', bounce: 0.15, duration: 0.25 }}
-            />
-          )}
           <CheckSquare className="w-4 h-4" />
           <span>تکالیف درسی ({toFaDigits(assignments.length)})</span>
         </button>
@@ -113,99 +104,70 @@ export default function AssignmentsScreen() {
         <button
           type="button"
           onClick={() => setActivityType('quiz')}
-          className={`relative flex-1 py-2 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer z-10 ${
+          className={`py-2 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer ${
             activityType === 'quiz'
-              ? 'text-primary-content'
+              ? 'bg-primary text-primary-content shadow-xs'
               : 'text-neutral hover:text-base-content'
           }`}
         >
-          {activityType === 'quiz' && (
-            <motion.div
-              layoutId="assignActivityTabIndicator"
-              className="absolute inset-0 bg-primary rounded-xl shadow-xs -z-10"
-              transition={{ type: 'spring', bounce: 0.15, duration: 0.25 }}
-            />
-          )}
           <HelpCircle className="w-4 h-4" />
-          <span>آزمون‌ها و کوییزها ({toFaDigits(quizzes.length)})</span>
+          <span>آزمون‌ها ({toFaDigits(quizzes.length)})</span>
         </button>
       </div>
 
       {activityType === 'assign' ? (
         <>
-          {/* فیلترها با مستطیل لغزان و دکمه انتقال کلی به سروستان */}
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="sarv-seg text-xs relative">
-              <button
-                type="button"
-                onClick={() => setFilter('pending')}
-                className={`relative px-3 py-1.5 rounded-xl font-bold transition cursor-pointer z-10 ${
-                  filter === 'pending'
-                    ? 'text-primary-content'
-                    : 'text-neutral hover:text-base-content'
-                }`}
-              >
-                {filter === 'pending' && (
-                  <motion.div
-                    layoutId="assignFilterTabIndicator"
-                    className="absolute inset-0 bg-primary rounded-xl shadow-xs -z-10"
-                    transition={{ type: 'spring', bounce: 0.15, duration: 0.25 }}
-                  />
-                )}
-                <span>در انتظار انجام ({toFaDigits(assignments.filter((a) => a.duedate && a.duedate > nowSec).length)})</span>
-              </button>
+          {/* ۲. فیلتر وضعیت تکالیف (سه‌تایی متقارن و تمام‌عرض) */}
+          <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-base-500/15 border border-base-500/25 text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setFilter('pending')}
+              className={`py-1.5 px-2 rounded-lg transition text-center truncate cursor-pointer ${
+                filter === 'pending'
+                  ? 'bg-primary text-primary-content font-black shadow-xs'
+                  : 'text-neutral hover:text-base-content'
+              }`}
+            >
+              <span>در انتظار ({toFaDigits(pendingCount)})</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => setFilter('all')}
-                className={`relative px-3 py-1.5 rounded-xl font-bold transition cursor-pointer z-10 ${
-                  filter === 'all'
-                    ? 'text-primary-content'
-                    : 'text-neutral hover:text-base-content'
-                }`}
-              >
-                {filter === 'all' && (
-                  <motion.div
-                    layoutId="assignFilterTabIndicator"
-                    className="absolute inset-0 bg-primary rounded-xl shadow-xs -z-10"
-                    transition={{ type: 'spring', bounce: 0.15, duration: 0.25 }}
-                  />
-                )}
-                <span>همه ({toFaDigits(assignments.length)})</span>
-              </button>
+            <button
+              type="button"
+              onClick={() => setFilter('all')}
+              className={`py-1.5 px-2 rounded-lg transition text-center truncate cursor-pointer ${
+                filter === 'all'
+                  ? 'bg-primary text-primary-content font-black shadow-xs'
+                  : 'text-neutral hover:text-base-content'
+              }`}
+            >
+              <span>همه ({toFaDigits(assignments.length)})</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => setFilter('past')}
-                className={`relative px-3 py-1.5 rounded-xl font-bold transition cursor-pointer z-10 ${
-                  filter === 'past'
-                    ? 'text-primary-content'
-                    : 'text-neutral hover:text-base-content'
-                }`}
-              >
-                {filter === 'past' && (
-                  <motion.div
-                    layoutId="assignFilterTabIndicator"
-                    className="absolute inset-0 bg-primary rounded-xl shadow-xs -z-10"
-                    transition={{ type: 'spring', bounce: 0.15, duration: 0.25 }}
-                  />
-                )}
-                <span>گذشته</span>
-              </button>
-            </div>
-
-            {assignments.length > 0 && (
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                type="button"
-                onClick={() => exportAllAssignmentsToSarvestan(filteredAssignments)}
-                className="px-3 py-2 rounded-2xl bg-success-soft border border-success/30 text-success text-xs font-bold hover:bg-success/20 transition flex items-center gap-1.5 cursor-pointer shadow-sm"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                <span>انتقال به سروستان</span>
-              </motion.button>
-            )}
+            <button
+              type="button"
+              onClick={() => setFilter('past')}
+              className={`py-1.5 px-2 rounded-lg transition text-center truncate cursor-pointer ${
+                filter === 'past'
+                  ? 'bg-primary text-primary-content font-black shadow-xs'
+                  : 'text-neutral hover:text-base-content'
+              }`}
+            >
+              <span>گذشته ({toFaDigits(pastCount)})</span>
+            </button>
           </div>
+
+          {/* دکمه انتقال سراسری به سروستان (متعادل و تمیز) */}
+          {assignments.length > 0 && (
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={() => exportAllAssignmentsToSarvestan(filteredAssignments)}
+              className="w-full py-2 px-3 rounded-xl bg-success-soft border border-success/30 text-success text-xs font-bold hover:bg-success/20 transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>انتقال تکالیف به تقویم سروستان</span>
+            </motion.button>
+          )}
 
           <AnimatePresence>
             {exportedMsg && (
@@ -230,27 +192,29 @@ export default function AssignmentsScreen() {
           ) : (
             <div className="space-y-3">
               {filteredAssignments.map((a, idx) => {
-                const isSubmitted = a.submissionStatus?.status === 'submitted';
                 const timing = formatAssignmentTiming(a.duedate);
-
                 const tone = getToneForCourse(a.courseName || a.courseShortName || a.course, courses);
                 const toneStyle = TONE_STYLES[tone] || TONE_STYLES.primary;
 
                 return (
                   <motion.div
                     key={a.id}
-                    initial={{ opacity: 0, y: 12 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.04 }}
+                    transition={{ delay: idx * 0.03 }}
                     onClick={() => setSelectedAssignment(a)}
-                    className={`sarv-card p-4 space-y-3 hover:border-primary/50 transition cursor-pointer group shadow-sm border-r-4 ${toneStyle.borderRight}`}
+                    className="sarv-card p-4 space-y-3 hover:border-primary/50 transition cursor-pointer group shadow-sm relative overflow-hidden"
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    {/* خط ظریف رنگی نشانگر درس در سمت راست کارت */}
+                    <div className={`absolute top-0 right-0 bottom-0 w-1.5 ${toneStyle.borderRight.replace('border-r-', 'bg-')}`} />
+
+                    {/* سطر اول: نام درس + وضعیت تحویل و اشتراک */}
+                    <div className="flex items-start justify-between gap-2.5">
                       <div className="space-y-1 min-w-0 flex-1">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-block ${toneStyle.bgSoft} ${toneStyle.text}`}>
+                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full inline-block ${toneStyle.bgSoft} ${toneStyle.text}`}>
                           {cleanCourseName(a.courseName || a.courseShortName)}
                         </span>
-                        <h3 className="text-xs font-black text-base-content group-hover:text-primary transition leading-relaxed">
+                        <h3 className="text-xs font-black text-base-content group-hover:text-primary transition leading-relaxed pt-0.5">
                           {cleanPersianText(a.name)}
                         </h3>
                       </div>
@@ -287,7 +251,7 @@ export default function AssignmentsScreen() {
                             return (
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 bg-base-500/20 text-neutral border border-base-500/30">
                                 <span className="w-1.5 h-1.5 rounded-full bg-neutral" />
-                                <span>مهلت تحویل پایان یافت</span>
+                                <span>مهلت پایان یافت</span>
                               </span>
                             );
                           }
@@ -303,28 +267,28 @@ export default function AssignmentsScreen() {
                           type="button"
                           onClick={(e) => handleExport(e, a)}
                           className="p-1.5 rounded-lg text-neutral hover:text-emerald-500 hover:bg-emerald-500/10 transition"
-                          title="انتقال به برنامه روزانه سروستان"
+                          title="انتقال به سروستان"
                         >
                           <Share2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs text-neutral pt-2 border-t border-base-500/20 gap-2 flex-nowrap">
-                      {/* بج سافت زمان همرنگ با درس */}
-                      <span className={`flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-lg whitespace-nowrap shrink-0 border ${toneStyle.bgSoft} ${toneStyle.text} ${toneStyle.border}`}>
-                        <Clock className="w-3 h-3 shrink-0" />
-                        <span className="whitespace-nowrap">{formatPersianDate(a.duedate)}</span>
-                      </span>
-
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${timing.badgeBg}`}>
+                    {/* سطر پایانی: تاریخ مهلت، وضعیت زمانی و لینک مشاهده بدون بیرون‌زدگی */}
+                    <div className="pt-2 border-t border-base-500/20 flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                        <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg border ${toneStyle.bgSoft} ${toneStyle.text} ${toneStyle.border}`}>
+                          <Clock className="w-3 h-3 shrink-0" />
+                          <span>{formatPersianDate(a.duedate)}</span>
+                        </span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${timing.badgeBg}`}>
                           {timing.text}
                         </span>
-                        <div className="flex items-center gap-0.5 text-primary font-bold text-[11px] group-hover:translate-x-[-2px] transition-transform whitespace-nowrap shrink-0">
-                          <span>مشاهده و ارسال</span>
-                          <ChevronLeft className="w-3.5 h-3.5 shrink-0" />
-                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-0.5 text-primary font-bold text-[11px] group-hover:-translate-x-1 transition-transform shrink-0 mr-auto">
+                        <span>مشاهده و جزئیات</span>
+                        <ChevronLeft className="w-3.5 h-3.5" />
                       </div>
                     </div>
                   </motion.div>
@@ -352,18 +316,20 @@ export default function AssignmentsScreen() {
               return (
                 <motion.div
                   key={q.id}
-                  initial={{ opacity: 0, y: 12 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.04 }}
+                  transition={{ delay: idx * 0.03 }}
                   onClick={() => setSelectedQuiz(q)}
-                  className={`sarv-card p-4 space-y-3 hover:border-primary/50 transition cursor-pointer group shadow-sm border-r-4 ${qToneStyle.borderRight}`}
+                  className="sarv-card p-4 space-y-3 hover:border-primary/50 transition cursor-pointer group shadow-sm relative overflow-hidden"
                 >
+                  <div className={`absolute top-0 right-0 bottom-0 w-1.5 ${qToneStyle.borderRight.replace('border-r-', 'bg-')}`} />
+
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1 min-w-0 flex-1">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-block ${qToneStyle.bgSoft} ${qToneStyle.text}`}>
+                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full inline-block ${qToneStyle.bgSoft} ${qToneStyle.text}`}>
                         {cleanPersianText(q.courseName || 'آزمون آنلاین')}
                       </span>
-                      <h3 className="text-xs font-black text-base-content group-hover:text-primary transition leading-relaxed">
+                      <h3 className="text-xs font-black text-base-content group-hover:text-primary transition leading-relaxed pt-0.5">
                         {cleanPersianText(q.name)}
                       </h3>
                     </div>
@@ -377,19 +343,19 @@ export default function AssignmentsScreen() {
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs text-neutral pt-2 border-t border-base-500/20">
+                  <div className="flex flex-wrap items-center justify-between text-xs text-neutral pt-2 border-t border-base-500/20 gap-2">
                     <span className="flex items-center gap-1.5 text-[11px]">
                       <Clock className="w-3.5 h-3.5 text-neutral" />
                       <span>مدت: {toFaDigits(Math.floor((q.timelimit || 1200) / 60))} دقیقه</span>
                     </span>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0 mr-auto">
                       {lastAttempt && (
                         <span className="text-[10px] font-black text-success bg-success/10 px-2 py-0.5 rounded-full">
                           نمره: {lastAttempt.gradeFormatted || `${toFaDigits(lastAttempt.sumgrades || 0)} / ۲۰`}
                         </span>
                       )}
-                      <div className="flex items-center gap-1 text-purple-500 font-bold text-[11px] group-hover:translate-x-[-2px] transition-transform">
+                      <div className="flex items-center gap-1 text-primary font-bold text-[11px] group-hover:-translate-x-1 transition-transform">
                         <span>مشاهده آزمون</span>
                         <ChevronLeft className="w-3.5 h-3.5" />
                       </div>

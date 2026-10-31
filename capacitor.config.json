@@ -1,5 +1,5 @@
 {
-  "appId": "ir.mjb4khshi.mehestan",
+  "appId": "ir.mjbakhshi.mehestan",
   "appName": "Mehestan",
   "webDir": "dist",
   "bundledWebRuntime": false,
@@ -9,7 +9,8 @@
     "backgroundColor": "#000000"
   },
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "cleartext": true
   },
   "plugins": {
     "CapacitorHttp": {
