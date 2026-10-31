@@ -253,7 +253,7 @@ export default function SettingsScreen() {
 
       {/* کارت دونیت (حمایت از توسعه — دارمت) عین سروستان */}
       <a
-        href="https://daramet.com/mjb4khshi"
+        href="https://daramet.com/mjbkhshi"
         target="_blank"
         rel="noopener noreferrer"
         className="sarv-card p-3 flex items-center justify-between gap-3 border border-rose-500/20 bg-gradient-to-l from-rose-500/5 via-base-100 to-amber-500/5 hover:border-rose-500/40 active:scale-[0.99] transition-all group"

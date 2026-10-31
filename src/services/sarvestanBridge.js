@@ -1,8 +1,267 @@
 /**
- * پل ارتباطی مهستان و سروستان (Sarvestan Cross-App Bridge)
- * انتقال خودکار تکالیف، آزمون‌ها و ددلاین‌های مودل به تقویم و برنامه مطالعه سروستان
- * بدون ایجاد تغییر در کدهای سمت سروستان
+ * پل ارتباطی رسمی مهستان و سروستان (Sarvestan Cross-App Bridge)
+ * همگام‌سازی دروس، اساتید، رنگ‌ها، برنامه هفتگی و انتقال تکالیف به تقویم و پلنر
  */
+import { cleanCourseCode, cleanCourseName, cleanPersianText } from '../utils/persianUtils';
+
+export const COURSE_TONES = ['primary', 'info', 'success', 'secondary', 'accent', 'warn', 'danger'];
+
+export const TONE_STYLES = {
+  primary: {
+    borderRight: 'border-r-primary',
+    bgSoft: 'bg-primary-soft',
+    text: 'text-primary',
+    border: 'border-primary',
+  },
+  info: {
+    borderRight: 'border-r-info',
+    bgSoft: 'bg-info-soft',
+    text: 'text-info',
+    border: 'border-info',
+  },
+  success: {
+    borderRight: 'border-r-success',
+    bgSoft: 'bg-success-soft',
+    text: 'text-success',
+    border: 'border-success',
+  },
+  secondary: {
+    borderRight: 'border-r-secondary',
+    bgSoft: 'bg-secondary-soft',
+    text: 'text-secondary',
+    border: 'border-secondary',
+  },
+  accent: {
+    borderRight: 'border-r-accent',
+    bgSoft: 'bg-accent-soft',
+    text: 'text-accent',
+    border: 'border-accent',
+  },
+  warn: {
+    borderRight: 'border-r-warn',
+    bgSoft: 'bg-warn-soft',
+    text: 'text-warn',
+    border: 'border-warn',
+  },
+  danger: {
+    borderRight: 'border-r-danger',
+    bgSoft: 'bg-danger-soft',
+    text: 'text-danger',
+    border: 'border-danger',
+  },
+};
+
+/**
+ * خواندن امن داده‌های ذخیره‌شده سروستان از حافظه محلی
+ */
+function readJsonSafe(key, fallback = null) {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * دریافت کلیه دروس موجود در سروستان (برنامه هفتگی + کارنامه + داده‌های همگام‌شده)
+ */
+export function getSarvestanCourses() {
+  const result = [];
+  const seen = new Set();
+
+  const addCourse = (c) => {
+    if (!c) return;
+    const key = (c.code || c.id || '') + '::' + (c.name || c.title || '');
+    if (!key.trim() || seen.has(key)) return;
+    seen.add(key);
+    result.push({
+      code: c.code || c.id || '',
+      name: c.name || c.title || '',
+      title: c.title || c.name || '',
+      group: c.group || '',
+      professor: c.professor || '',
+      units: c.units || '',
+      classTime: c.classTime || '',
+      room: c.room || '',
+      color: c.color || '',
+    });
+  };
+
+  // ۱. بررسی داده‌های مستقیم برنامه هفتگی سروستان در LocalStorage
+  const schedule = readJsonSafe('sarvestan_live_schedule', {});
+  if (typeof schedule === 'object' && schedule !== null) {
+    Object.values(schedule).forEach((list) => {
+      if (Array.isArray(list)) list.forEach(addCourse);
+    });
+  }
+
+  // ۲. بررسی دیتای دروس جاری سروستان
+  const liveCourses = readJsonSafe('sarvestan_live_courses', []);
+  if (Array.isArray(liveCourses)) {
+    liveCourses.forEach(addCourse);
+  }
+
+  // ۳. بررسی بسته اختصاصی همگام‌سازی شده بین دو اپلیکیشن
+  const syncedData = readJsonSafe('mehestan_sarvestan_synced_data', null);
+  if (syncedData) {
+    if (Array.isArray(syncedData.schedule)) syncedData.schedule.forEach(addCourse);
+    if (Array.isArray(syncedData.courses)) syncedData.courses.forEach(addCourse);
+  }
+
+  return result;
+}
+
+/**
+ * استخراج اعداد خالص از کد درس جهت تطبیق هوشمند
+ * مثال: «60-6660102-4051» -> «6660102»
+ */
+function extractCoreDigits(code) {
+  if (!code) return '';
+  const digits = String(code).replace(/\D/g, '');
+  if (!digits) return '';
+  const matches = String(code).match(/\d{5,8}/g);
+  if (matches && matches.length > 0) {
+    return matches[0];
+  }
+  return digits;
+}
+
+/**
+ * تطبیق درس مودل با درس‌های سروستان
+ */
+export function matchCourseWithSarvestan(moodleCourse, sarvCourses = null) {
+  if (!moodleCourse) return null;
+  const list = Array.isArray(sarvCourses) && sarvCourses.length > 0 ? sarvCourses : getSarvestanCourses();
+  if (!list.length) return null;
+
+  const mCode = cleanCourseCode(moodleCourse.shortname || moodleCourse.id || '');
+  const mCoreDigits = extractCoreDigits(moodleCourse.shortname || moodleCourse.fullname || '');
+  const mName = cleanCourseName(moodleCourse.fullname || moodleCourse.name || '');
+
+  // ۱. تطبیق بر اساس هسته ارقام کد درس
+  if (mCoreDigits) {
+    const byCode = list.find((sc) => {
+      const sCore = extractCoreDigits(sc.code || sc.id || '');
+      return sCore && (sCore === mCoreDigits || sCore.includes(mCoreDigits) || mCoreDigits.includes(sCore));
+    });
+    if (byCode) return byCode;
+  }
+
+  // ۲. تطبیق بر اساس کد کامل پاکسازی‌شده
+  if (mCode) {
+    const byFullCode = list.find((sc) => {
+      const sCode = cleanCourseCode(sc.code || sc.id || '');
+      return sCode && sCode === mCode;
+    });
+    if (byFullCode) return byFullCode;
+  }
+
+  // ۳. تطبیق بر اساس نام تمیز شده درس
+  if (mName) {
+    const byName = list.find((sc) => {
+      const sName = cleanCourseName(sc.name || sc.title || '');
+      if (!sName) return false;
+      return sName === mName || sName.includes(mName) || mName.includes(sName);
+    });
+    if (byName) return byName;
+  }
+
+  return null;
+}
+
+/**
+ * دریافت اطلاعات تکمیلی درس از سروستان (اسم استاد، واحد، گروه، زمان)
+ */
+export function getCourseSarvestanInfo(moodleCourse, sarvCourses = null) {
+  const matched = matchCourseWithSarvestan(moodleCourse, sarvCourses);
+  if (!matched) {
+    return {
+      professor: '',
+      units: '',
+      group: '',
+      classTime: '',
+      room: '',
+      color: '',
+    };
+  }
+
+  return {
+    professor: matched.professor && matched.professor !== 'ـ' ? matched.professor : '',
+    units: matched.units && matched.units !== 'ـ' ? matched.units : '',
+    group: matched.group && matched.group !== 'ـ' ? matched.group : '',
+    classTime: matched.classTime && matched.classTime !== 'ـ' ? matched.classTime : '',
+    room: matched.room && matched.room !== 'ـ' ? matched.room : '',
+    color: matched.color || '',
+  };
+}
+
+/**
+ * تشخیص یا تخصیص رنگ درس مطابق الگوریتم رسمی سروستان
+ */
+export function getToneForCourse(courseOrNameOrCode, allSarvCourses = null) {
+  if (!courseOrNameOrCode) return COURSE_TONES[0];
+  const list = Array.isArray(allSarvCourses) && allSarvCourses.length > 0 ? allSarvCourses : getSarvestanCourses();
+
+  const matched = matchCourseWithSarvestan(courseOrNameOrCode, list);
+  if (matched?.color && COURSE_TONES.includes(matched.color)) {
+    return matched.color;
+  }
+
+  if (matched && list.length > 0) {
+    const idx = list.indexOf(matched);
+    if (idx >= 0) {
+      return COURSE_TONES[idx % COURSE_TONES.length];
+    }
+  }
+
+  const raw = typeof courseOrNameOrCode === 'object' ? courseOrNameOrCode : { name: courseOrNameOrCode };
+  const cCode = cleanCourseCode(raw.code || raw.shortname || '');
+  const cName = cleanCourseName(raw.fullname || raw.name || raw.title || '');
+  const s = cCode || cName || String(courseOrNameOrCode);
+
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) {
+    hash = (hash << 5) - hash + s.charCodeAt(i);
+    hash |= 0;
+  }
+  return COURSE_TONES[Math.abs(hash) % COURSE_TONES.length];
+}
+
+/**
+ * گوش‌دادن و تبادل داده با سروستان از طریق BroadcastChannel
+ */
+export function initSarvestanBridgeListener(onDataReceived) {
+  if (typeof window === 'undefined') return () => {};
+
+  let bc = null;
+  try {
+    if ('BroadcastChannel' in window) {
+      bc = new BroadcastChannel('sarvestan_mehestan_channel');
+      
+      bc.onmessage = (event) => {
+        const { type, payload } = event.data || {};
+        if (type === 'SARVESTAN_DATA_RESPONSE' && payload) {
+          try {
+            localStorage.setItem('mehestan_sarvestan_synced_data', JSON.stringify(payload));
+          } catch {}
+          if (typeof onDataReceived === 'function') {
+            onDataReceived(payload);
+          }
+        }
+      };
+
+      bc.postMessage({ type: 'REQUEST_SARVESTAN_DATA', sentAt: Date.now() });
+    }
+  } catch (err) {
+    console.warn('BroadcastChannel init error:', err);
+  }
+
+  return () => {
+    if (bc) bc.close();
+  };
+}
 
 /**
  * همگام‌سازی یک تکلیف با سروستان
@@ -103,7 +362,6 @@ export function syncAllWithSarvestan({ assignments = [], courses = [], user = nu
 function dispatchToSarvestan(type, payload) {
   if (typeof window === 'undefined') return;
 
-  // ۱. ارسال از طریق BroadcastChannel برای تب‌ها و پنجره‌های باز سروستان
   try {
     if ('BroadcastChannel' in window) {
       const bc = new BroadcastChannel('sarvestan_mehestan_channel');
@@ -114,12 +372,10 @@ function dispatchToSarvestan(type, payload) {
     console.warn('BroadcastChannel sync failed:', err);
   }
 
-  // ۲. ذخیره‌سازی در صف LocalStorage تا سروستان در زمان اجرا آن را بخواند
   try {
     const queueKey = 'sarvestan_mehestan_sync_queue';
     const existing = JSON.parse(localStorage.getItem(queueKey) || '[]');
     existing.push({ type, payload, timestamp: Date.now() });
-    // نگه داشتن حداکثر ۲۰ رویداد اخیر
     const trimmed = existing.slice(-20);
     localStorage.setItem(queueKey, JSON.stringify(trimmed));
   } catch (err) {
@@ -152,7 +408,7 @@ export function exportAssignmentsAsIcs(assignments = []) {
   assignments.forEach((a) => {
     if (!a.duedate) return;
     const dueDate = new Date(a.duedate * 1000);
-    const startDate = new Date(dueDate.getTime() - 60 * 60 * 1000); // یک ساعت قبل
+    const startDate = new Date(dueDate.getTime() - 60 * 60 * 1000);
 
     lines.push('BEGIN:VEVENT');
     lines.push(`UID:mehestan-assign-${a.id}@kntu.ac.ir`);
@@ -163,7 +419,7 @@ export function exportAssignmentsAsIcs(assignments = []) {
     lines.push(`DESCRIPTION:موعد تحویل تکلیف درس ${a.courseName || ''}`);
     lines.push('STATUS:CONFIRMED');
     lines.push('BEGIN:VALARM');
-    lines.push('TRIGGER:-PT3H'); // هشدار ۳ ساعت قبل
+    lines.push('TRIGGER:-PT3H');
     lines.push('ACTION:DISPLAY');
     lines.push(`DESCRIPTION:یادآور ددلاین تکلیف ${a.name || ''}`);
     lines.push('END:VALARM');

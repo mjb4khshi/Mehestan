@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
+import UserAvatar from '../components/UserAvatar';
 import {
   getMoodleConversations,
   getConversationMessages,
@@ -257,9 +258,12 @@ export default function MessagesScreen() {
                   <ChevronLeft className="w-4.5 h-4.5 rotate-180" />
                 </button>
 
-                <div className="w-9 h-9 rounded-2xl bg-primary/10 text-primary border border-primary/25 grid place-items-center font-black text-xs shrink-0 shadow-sm">
-                  {getConversationTitle(activeConversation).charAt(0)}
-                </div>
+                <UserAvatar
+                  url={activeConversation.imageurl || activeConversation.members?.find((m) => Number(m.id) !== Number(myUserId))?.profileimageurl}
+                  name={getConversationTitle(activeConversation)}
+                  token={session?.token}
+                  size="w-9 h-9"
+                />
 
                 <div className="min-w-0">
                   <h3 className="text-xs font-black text-base-content truncate">
@@ -406,9 +410,12 @@ export default function MessagesScreen() {
                       className="w-full sarv-card p-3.5 flex items-center justify-between gap-3 text-right hover:border-primary/40 active:scale-[0.99] transition cursor-pointer shadow-sm"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary border border-primary/25 grid place-items-center font-black text-sm shrink-0 shadow-sm">
-                          {title.charAt(0)}
-                        </div>
+                        <UserAvatar
+                          url={conv.imageurl || conv.members?.find((m) => Number(m.id) !== Number(myUserId))?.profileimageurl}
+                          name={title}
+                          token={session?.token}
+                          size="w-11 h-11"
+                        />
 
                         <div className="space-y-0.5 min-w-0 flex-1">
                           <h3 className="text-xs font-black text-base-content truncate">
@@ -527,9 +534,13 @@ export default function MessagesScreen() {
                       className="w-full p-2.5 rounded-xl border border-base-500/20 hover:border-primary/40 hover:bg-base-500/15 flex items-center justify-between transition cursor-pointer text-right"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-8 h-8 rounded-xl bg-primary/15 text-primary grid place-items-center font-bold text-xs shrink-0">
-                          {cleanPersianText(u.fullname).charAt(0)}
-                        </div>
+                        <UserAvatar
+                          url={u.profileimageurl}
+                          name={u.fullname}
+                          token={session?.token}
+                          roleType={u.roleType}
+                          size="w-8 h-8"
+                        />
                         <div className="min-w-0">
                           <h4 className="text-xs font-bold text-base-content truncate">
                             {cleanPersianText(u.fullname)}

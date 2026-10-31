@@ -15,7 +15,12 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
 import { getAssignmentSubmissionStatus } from '../services/moodle/api';
-import { exportAssignmentToSarvestan, exportAllAssignmentsToSarvestan } from '../services/sarvestanBridge';
+import {
+  exportAssignmentToSarvestan,
+  exportAllAssignmentsToSarvestan,
+  getToneForCourse,
+  TONE_STYLES,
+} from '../services/sarvestanBridge';
 import AssignmentDetailModal from '../components/AssignmentDetailModal';
 import QuizDetailModal from '../components/QuizDetailModal';
 import {
@@ -228,6 +233,9 @@ export default function AssignmentsScreen() {
                 const isSubmitted = a.submissionStatus?.status === 'submitted';
                 const timing = formatAssignmentTiming(a.duedate);
 
+                const tone = getToneForCourse(a.courseName || a.courseShortName);
+                const toneStyle = TONE_STYLES[tone] || TONE_STYLES.primary;
+
                 return (
                   <motion.div
                     key={a.id}
@@ -235,11 +243,11 @@ export default function AssignmentsScreen() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.04 }}
                     onClick={() => setSelectedAssignment(a)}
-                    className="sarv-card p-4 space-y-3 hover:border-primary/50 transition cursor-pointer group shadow-sm"
+                    className={`sarv-card p-4 space-y-3 hover:border-primary/50 transition cursor-pointer group shadow-sm border-r-4 ${toneStyle.borderRight}`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1 min-w-0 flex-1">
-                        <span className="text-[10px] text-primary font-bold bg-primary/10 px-2 py-0.5 rounded-full inline-block">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-block ${toneStyle.bgSoft} ${toneStyle.text}`}>
                           {cleanCourseName(a.courseName || a.courseShortName)}
                         </span>
                         <h3 className="text-xs font-black text-base-content group-hover:text-primary transition leading-relaxed">

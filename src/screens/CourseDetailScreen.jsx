@@ -33,6 +33,7 @@ import {
   Check,
   Eye,
   Calendar,
+  User,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -52,6 +53,13 @@ import { useMoodleAuth } from '../context/MoodleAuthContext';
 import AssignmentDetailModal from '../components/AssignmentDetailModal';
 import QuizDetailModal from '../components/QuizDetailModal';
 import DocumentViewerModal from '../components/DocumentViewerModal';
+import UserAvatar from '../components/UserAvatar';
+import {
+  getSarvestanCourses,
+  getToneForCourse,
+  getCourseSarvestanInfo,
+  TONE_STYLES,
+} from '../services/sarvestanBridge';
 import { cacheCourseContents, getCachedCourseContents } from '../services/offlineCache';
 import { cleanCourseName, cleanCourseCode, cleanPersianText, toFaDigits, formatFileSizeFa } from '../utils/persianUtils';
 
@@ -65,6 +73,12 @@ const COURSE_TABS = [
 export default function CourseDetailScreen({ course, onBack }) {
   const { session, siteInfo, assignments } = useMoodleAuth();
   const [activeTab, setActiveTab] = useState('content');
+
+  const sarvCourses = React.useMemo(() => getSarvestanCourses(), []);
+  const sarvInfo = getCourseSarvestanInfo(course, sarvCourses);
+  const tone = sarvInfo.color || getToneForCourse(course, sarvCourses);
+  const toneStyle = TONE_STYLES[tone] || TONE_STYLES.primary;
+  const courseCode = cleanCourseCode(course?.shortname || course?.fullname);
 
   // داده‌های محتوای درس
   const [contents, setContents] = useState([]);
@@ -427,11 +441,11 @@ export default function CourseDetailScreen({ course, onBack }) {
 
   return (
     <div className="p-3.5 sm:p-4 space-y-4 max-w-2xl mx-auto w-full min-w-0">
-      {/* سربرگ درس با نشان و عنوان */}
+      {/* سربرگ درس با نوار رنگی اختصاصی سروستان و مشخصات تکمیلی */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="sarv-card p-4 space-y-2.5 shadow-sm"
+        className={`sarv-card p-4 space-y-2.5 shadow-sm border-r-4 ${toneStyle.borderRight}`}
       >
         <div className="flex items-center justify-between">
           <motion.button
@@ -443,13 +457,38 @@ export default function CourseDetailScreen({ course, onBack }) {
             <ChevronLeft className="w-4 h-4 rotate-180" />
             <span>بازگشت به فهرست دروس</span>
           </motion.button>
-          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/25">
-            {cleanCourseCode(course.shortname)}
-          </span>
+          {courseCode && (
+            <span
+              className={`text-[10.5px] font-black px-2.5 py-0.5 rounded-lg shrink-0 font-mono ${toneStyle.bgSoft} ${toneStyle.text}`}
+            >
+              {courseCode}
+            </span>
+          )}
         </div>
         <h2 className="text-sm font-black text-base-content leading-relaxed">
           {cleanCourseName(course.fullname)}
         </h2>
+
+        {(sarvInfo.professor || sarvInfo.units || sarvInfo.classTime) && (
+          <div className="flex items-center gap-2 pt-1 border-t border-base-500/20 text-xs text-neutral flex-wrap">
+            {sarvInfo.professor && (
+              <span className="flex items-center gap-1 font-medium">
+                <User className="w-3.5 h-3.5 text-neutral/70" />
+                <span>استاد: {cleanPersianText(sarvInfo.professor)}</span>
+              </span>
+            )}
+            {sarvInfo.units && (
+              <span className="px-2 py-0.5 rounded-md bg-base-500/15 text-[10.5px] font-bold">
+                {toFaDigits(sarvInfo.units)} واحد
+              </span>
+            )}
+            {sarvInfo.classTime && (
+              <span className="text-[10.5px] text-neutral/80">
+                {cleanPersianText(sarvInfo.classTime)}
+              </span>
+            )}
+          </div>
+        )}
       </motion.div>
 
       {/* کارت دسترسی سریع به کلاس مجازی دانشگاه در صورت وجود در درس */}
@@ -1039,17 +1078,13 @@ export default function CourseDetailScreen({ course, onBack }) {
                     className="sarv-card p-3.5 flex items-center justify-between gap-3 shadow-sm"
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div
-                        className={`w-10 h-10 rounded-2xl grid place-items-center font-black text-xs shrink-0 ${
-                          isTeacher
-                            ? 'bg-primary/15 text-primary border border-primary/25'
-                            : isTa
-                            ? 'bg-secondary/15 text-secondary border border-secondary/25'
-                            : 'bg-base-500/20 text-neutral border border-base-500/30'
-                        }`}
-                      >
-                        {cleanPersianText(user.fullname).charAt(0)}
-                      </div>
+                      <UserAvatar
+                        url={user.profileimageurl}
+                        name={user.fullname}
+                        token={session?.token}
+                        roleType={user.roleType}
+                        size="w-10 h-10"
+                      />
 
                       <div className="space-y-0.5 min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
