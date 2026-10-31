@@ -43,6 +43,7 @@ import {
   updateActivityCompletion,
   getCourseCompletion,
   sendMoodleMessage,
+  downloadMoodleFile,
 } from '../services/moodle/api';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
 import AssignmentDetailModal from '../components/AssignmentDetailModal';
@@ -94,6 +95,21 @@ export default function CourseDetailScreen({ course, onBack }) {
   // مودال‌های جزئیات تکلیف و کوییز
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [selectedQuiz, setSelectedQuiz] = useState(null);
+
+  // دانلود درون‌برنامه‌ای فایل‌ها
+  const [downloadingUrl, setDownloadingUrl] = useState(null);
+
+  const handleInAppDownload = async (fileUrl, filename) => {
+    if (downloadingUrl) return;
+    setDownloadingUrl(fileUrl);
+    try {
+      await downloadMoodleFile(fileUrl, filename, session?.token);
+    } catch (err) {
+      console.error('Download error:', err);
+    } finally {
+      setDownloadingUrl(null);
+    }
+  };
 
   // بارگذاری سرفصل‌ها و محتوای درس
   useEffect(() => {
@@ -569,17 +585,20 @@ export default function CourseDetailScreen({ course, onBack }) {
                                           <span className="text-[10px] text-neutral font-mono">
                                             {formatFileSizeFa(file.filesize)}
                                           </span>
-                                          <a
-                                            href={downloadUrl}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            download={file.filename}
-                                            className="p-1 rounded text-primary hover:bg-primary/10 transition flex items-center gap-1 font-bold"
+                                          <button
+                                            type="button"
+                                            onClick={() => handleInAppDownload(file.fileurl, file.filename)}
+                                            disabled={downloadingUrl === file.fileurl}
+                                            className="p-1 rounded text-primary hover:bg-primary/10 transition flex items-center gap-1 font-bold cursor-pointer disabled:opacity-50"
                                             title="دریافت فایل"
                                           >
-                                            <Download className="w-3.5 h-3.5" />
+                                            {downloadingUrl === file.fileurl ? (
+                                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            ) : (
+                                              <Download className="w-3.5 h-3.5" />
+                                            )}
                                             <span className="hidden sm:inline">دانلود</span>
-                                          </a>
+                                          </button>
                                         </div>
                                       </div>
                                     );

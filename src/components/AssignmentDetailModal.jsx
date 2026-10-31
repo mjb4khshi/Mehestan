@@ -33,6 +33,7 @@ import {
   saveAssignmentSubmission,
   submitAssignmentForGrading,
   getMoodleFileUrl,
+  downloadMoodleFile,
 } from '../services/moodle/api';
 import { exportAssignmentToSarvestan } from '../services/sarvestanBridge';
 import {
@@ -56,6 +57,19 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
   // فیلدهای فرم ارسال
   const [selectedFile, setSelectedFile] = useState(null);
   const [onlineText, setOnlineText] = useState('');
+  const [downloadingUrl, setDownloadingUrl] = useState(null);
+
+  const handleInAppDownload = async (fileUrl, filename) => {
+    if (downloadingUrl) return;
+    setDownloadingUrl(fileUrl);
+    try {
+      await downloadMoodleFile(fileUrl, filename, session?.token);
+    } catch (err) {
+      console.error('Download error:', err);
+    } finally {
+      setDownloadingUrl(null);
+    }
+  };
 
   // استعلام وضعیت دقیق تحویل و نمره از مودل
   useEffect(() => {
@@ -359,22 +373,26 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
                     <span className="font-bold text-neutral text-[11px] block">فایل تصحیح‌شده / پاسخنامه ضمیمه استاد:</span>
                     <div className="space-y-1">
                       {feedbackFiles.map((f, idx) => (
-                        <a
+                        <button
+                          type="button"
                           key={idx}
-                          href={getMoodleFileUrl(f.fileurl, session.token)}
-                          target="_blank"
-                          rel="noreferrer"
-                          download
-                          className="p-2 rounded-lg bg-base-500/20 hover:bg-base-500/30 text-success font-bold flex items-center justify-between transition text-[11px]"
+                          onClick={() => handleInAppDownload(f.fileurl, f.filename)}
+                          disabled={downloadingUrl === f.fileurl}
+                          className="w-full p-2 rounded-lg bg-base-500/20 hover:bg-base-500/30 text-success font-bold flex items-center justify-between transition text-[11px] cursor-pointer text-right disabled:opacity-50"
                         >
                           <div className="flex items-center gap-1.5 truncate">
                             <FileText className="w-3.5 h-3.5 shrink-0" />
                             <span className="truncate">{cleanPersianText(f.filename)}</span>
                           </div>
                           <span className="text-[10px] text-neutral shrink-0 mr-2 flex items-center gap-1">
-                            {formatFileSizeFa(f.filesize)} <Download className="w-3 h-3 text-success" />
+                            {formatFileSizeFa(f.filesize)}{' '}
+                            {downloadingUrl === f.fileurl ? (
+                              <Loader2 className="w-3 h-3 text-success animate-spin" />
+                            ) : (
+                              <Download className="w-3 h-3 text-success" />
+                            )}
                           </span>
-                        </a>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -402,13 +420,12 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
                 <h4 className="font-bold text-neutral text-[11px]">فایل‌های ضمیمه صورت سوال (استاد):</h4>
                 <div className="space-y-1.5">
                   {assignment.introattachments.map((file, idx) => (
-                    <a
+                    <button
+                      type="button"
                       key={idx}
-                      href={getMoodleFileUrl(file.fileurl, session.token)}
-                      target="_blank"
-                      rel="noreferrer"
-                      download
-                      className="p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/25 text-primary flex items-center justify-between transition cursor-pointer font-bold"
+                      onClick={() => handleInAppDownload(file.fileurl, file.filename)}
+                      disabled={downloadingUrl === file.fileurl}
+                      className="w-full p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/25 text-primary flex items-center justify-between transition cursor-pointer font-bold text-right disabled:opacity-50"
                     >
                       <div className="flex items-center gap-2 truncate">
                         <FileText className="w-4 h-4 shrink-0" />
@@ -416,9 +433,13 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
                       </div>
                       <div className="flex items-center gap-2 text-[10px] text-neutral shrink-0">
                         <span>{formatFileSizeFa(file.filesize)}</span>
-                        <Download className="w-3.5 h-3.5 text-primary" />
+                        {downloadingUrl === file.fileurl ? (
+                          <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
+                        ) : (
+                          <Download className="w-3.5 h-3.5 text-primary" />
+                        )}
                       </div>
-                    </a>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -443,16 +464,19 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
                       </div>
                       <div className="flex items-center gap-2.5 shrink-0">
                         <span className="text-[10px] text-neutral font-mono">{formatFileSizeFa(file.filesize)}</span>
-                        <a
-                          href={getMoodleFileUrl(file.fileurl, session.token)}
-                          target="_blank"
-                          rel="noreferrer"
-                          download
-                          className="p-1 rounded text-primary hover:bg-primary/10 transition"
+                        <button
+                          type="button"
+                          onClick={() => handleInAppDownload(file.fileurl, file.filename)}
+                          disabled={downloadingUrl === file.fileurl}
+                          className="p-1 rounded text-primary hover:bg-primary/10 transition cursor-pointer disabled:opacity-50"
                           title="دانلود فایل ارسالی"
                         >
-                          <Download className="w-3.5 h-3.5" />
-                        </a>
+                          {downloadingUrl === file.fileurl ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Download className="w-3.5 h-3.5" />
+                          )}
+                        </button>
                       </div>
                     </div>
                   ))}

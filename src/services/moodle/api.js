@@ -205,6 +205,90 @@ export function getMoodleFileUrl(fileUrl, token) {
 }
 
 /**
+ * ایجاد و شبیه‌سازی دانلود درون‌حافظه‌ای با استفاده از تگ نامرئی و ObjectURL
+ */
+function triggerBlobDownload(blob, filename) {
+  const blobUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.style.display = 'none';
+  a.href = blobUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    try {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch {
+      // نادیده گرفتن خطا در حذف
+    }
+  }, 1000);
+}
+
+/**
+ * دانلود نامرئی از طریق آی‌فریم پس‌زمینه بدون باز شدن تب یا صفحه جدید
+ */
+function triggerSilentIframeDownload(url) {
+  let iframe = document.getElementById('moodle-silent-downloader');
+  if (!iframe) {
+    iframe = document.createElement('iframe');
+    iframe.id = 'moodle-silent-downloader';
+    iframe.style.position = 'fixed';
+    iframe.style.top = '-9999px';
+    iframe.style.left = '-9999px';
+    iframe.style.width = '1px';
+    iframe.style.height = '1px';
+    iframe.style.opacity = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+  }
+  iframe.src = url;
+}
+
+/**
+ * دانلود مستقیم و درون‌برنامه‌ای فایل‌های مودل بدون باز شدن تب یا صفحه خارجی مرورگر
+ */
+export async function downloadMoodleFile(fileUrl, filename, token) {
+  if (!fileUrl) {
+    throw new Error('آدرس فایل معتبر نیست.');
+  }
+
+  const cleanFilename = filename || fileUrl.split('/').pop().split('?')[0] || 'moodle_file';
+
+  // در حالت دمو یا فایل‌های نمونه، یک فایل محتوای درون‌برنامه‌ای تولید و بلافاصله ذخیره می‌شود
+  if (!token || token.startsWith('demo_') || fileUrl.includes('/demo/')) {
+    const sampleContent = `فایل دریافت شده از سامانه مودل مهستان\nنام فایل: ${cleanFilename}\nتاریخ دریافت: ${new Date().toLocaleString('fa-IR')}\nوضعیت: دانلود مستقیم درون‌برنامه‌ای`;
+    const blob = new Blob([sampleContent], { type: 'text/plain;charset=utf-8' });
+    triggerBlobDownload(blob, cleanFilename.includes('.') ? cleanFilename : `${cleanFilename}.txt`);
+    return { success: true };
+  }
+
+  const authenticatedUrl = getMoodleFileUrl(fileUrl, token);
+
+  const isLocal =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+  const fetchUrl = isLocal
+    ? `/api/moodle-proxy?url=${encodeURIComponent(authenticatedUrl)}`
+    : authenticatedUrl;
+
+  try {
+    const res = await fetch(fetchUrl);
+    if (!res.ok) {
+      throw new Error(`خطای دریافت فایل از مودل (${res.status})`);
+    }
+    const blob = await res.blob();
+    triggerBlobDownload(blob, cleanFilename);
+    return { success: true };
+  } catch (err) {
+    console.error('In-app blob download error, triggering silent background download:', err);
+    triggerSilentIframeDownload(authenticatedUrl);
+    return { success: true };
+  }
+}
+
+/**
  * فرمت‌بندی خوانا و استاندارد حجم فایل‌ها
  */
 export function formatFileSize(bytes) {

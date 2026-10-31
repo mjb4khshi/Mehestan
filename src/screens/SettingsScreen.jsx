@@ -21,7 +21,7 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
 import { exportAllAssignmentsToSarvestan } from '../services/sarvestanBridge';
-import { getPrivateFiles, getUserBadges, getMoodleFileUrl } from '../services/moodle/api';
+import { getPrivateFiles, getUserBadges, getMoodleFileUrl, downloadMoodleFile } from '../services/moodle/api';
 import { cleanPersianText, toFaDigits, formatFileSizeFa } from '../utils/persianUtils';
 
 export default function SettingsScreen() {
@@ -34,6 +34,19 @@ export default function SettingsScreen() {
 
   const [badges, setBadges] = useState([]);
   const [loadingBadges, setLoadingBadges] = useState(false);
+  const [downloadingUrl, setDownloadingUrl] = useState(null);
+
+  const handleInAppDownload = async (fileUrl, filename) => {
+    if (downloadingUrl) return;
+    setDownloadingUrl(fileUrl);
+    try {
+      await downloadMoodleFile(fileUrl, filename, session?.token);
+    } catch (err) {
+      console.error('Download error:', err);
+    } finally {
+      setDownloadingUrl(null);
+    }
+  };
 
   // بارگذاری فایل‌های خصوصی ابری مودل
   useEffect(() => {
@@ -172,17 +185,20 @@ export default function SettingsScreen() {
                     </div>
                   </div>
 
-                  <a
-                    href={downloadUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    download={file.filename}
-                    className="p-2 rounded-lg text-primary hover:bg-primary/10 transition flex items-center gap-1 font-bold shrink-0 mr-2"
+                  <button
+                    type="button"
+                    onClick={() => handleInAppDownload(file.fileurl, file.filename)}
+                    disabled={downloadingUrl === file.fileurl}
+                    className="p-2 rounded-lg text-primary hover:bg-primary/10 transition flex items-center gap-1 font-bold shrink-0 mr-2 cursor-pointer disabled:opacity-50"
                     title="دانلود فایل"
                   >
-                    <Download className="w-4 h-4" />
+                    {downloadingUrl === file.fileurl ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4" />
+                    )}
                     <span className="text-[11px] hidden sm:inline">دریافت</span>
-                  </a>
+                  </button>
                 </div>
               );
             })}
