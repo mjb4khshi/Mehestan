@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useMoodleAuth } from './context/MoodleAuthContext';
+import { checkAndDispatchMoodleNotifications } from './services/moodleNotifications';
 import TopBar from './components/TopBar';
 import BottomNav from './components/BottomNav';
 import LoginScreen from './screens/LoginScreen';
@@ -43,10 +44,20 @@ const pageVariants = {
 };
 
 export default function App() {
-  const { isAuthenticated, assignments } = useMoodleAuth();
+  const { isAuthenticated, assignments, session, siteInfo } = useMoodleAuth();
   const [activeTab, setActiveTab] = useState('courses');
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [slideDir, setSlideDir] = useState(0);
+
+  // بررسی دوره‌ای اعلان‌های سیستمی مودل در پس‌زمینه
+  useEffect(() => {
+    if (!isAuthenticated || !session?.siteUrl || !session?.token) return;
+    checkAndDispatchMoodleNotifications(session.siteUrl, session.token, siteInfo?.userid).catch(() => {});
+    const interval = setInterval(() => {
+      checkAndDispatchMoodleNotifications(session.siteUrl, session.token, siteInfo?.userid).catch(() => {});
+    }, 180000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, session, siteInfo]);
 
   if (!isAuthenticated) {
     return <LoginScreen />;

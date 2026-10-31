@@ -19,19 +19,27 @@ import {
   Loader2,
   Eye,
   Calendar,
+  Bell,
+  BellRing,
 } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
 import { exportAllAssignmentsToSarvestan, syncAllWithSarvestan, exportAssignmentsAsIcs } from '../services/sarvestanBridge';
 import { getPrivateFiles, getUserBadges, getMoodleFileUrl, downloadMoodleFile } from '../services/moodle/api';
+import {
+  isMoodleNotificationEnabled,
+  setMoodleNotificationEnabled,
+  testMoodleNotification,
+  getNotificationPermission,
+  requestNotificationPermission,
+} from '../services/moodleNotifications';
 import DocumentViewerModal from '../components/DocumentViewerModal';
 import { cleanPersianText, toFaDigits, formatFileSizeFa } from '../utils/persianUtils';
 
 export default function SettingsScreen() {
-  const { theme, setTheme, themes } = useTheme();
   const { session, siteInfo, assignments, logout } = useMoodleAuth();
   const [msg, setMsg] = useState('');
 
+  const [notifsEnabled, setNotifsEnabled] = useState(isMoodleNotificationEnabled());
   const [privateFiles, setPrivateFiles] = useState([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
 
@@ -39,6 +47,28 @@ export default function SettingsScreen() {
   const [loadingBadges, setLoadingBadges] = useState(false);
   const [downloadingUrl, setDownloadingUrl] = useState(null);
   const [previewFile, setPreviewFile] = useState(null);
+
+  const handleToggleNotifs = async () => {
+    const next = !notifsEnabled;
+    if (next) {
+      await requestNotificationPermission();
+    }
+    setMoodleNotificationEnabled(next);
+    setNotifsEnabled(next);
+    setMsg(next ? 'اعلان‌های سیستمی مودل فعال شدند.' : 'اعلان‌های سیستمی مودل غیرفعال شدند.');
+    setTimeout(() => setMsg(''), 3000);
+  };
+
+  const handleTestNotif = async () => {
+    try {
+      await testMoodleNotification();
+      setMsg('اعلان آزمایشی به دستگاه شما ارسال گردید.');
+      setTimeout(() => setMsg(''), 3000);
+    } catch (err) {
+      setMsg(err.message || 'خطا در ارسال اعلان آزمایشی');
+      setTimeout(() => setMsg(''), 3500);
+    }
+  };
 
   const handleInAppDownload = async (fileUrl, filename) => {
     if (downloadingUrl) return;
@@ -324,48 +354,45 @@ export default function SettingsScreen() {
         </div>
       </div>
 
-      {/* انتخابگر ۱۶ تم رسمی سروستان */}
-      <div className="sarv-card p-4 space-y-3 shadow-sm">
+      {/* اعلان‌ها و هشدارهای سیستمی مودل */}
+      <div className="sarv-card p-4 space-y-3 shadow-sm border-primary/25 bg-primary/5">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-black text-base-content flex items-center gap-2">
-            <Palette className="w-4 h-4 text-primary" />
-            <span>پالت تم‌های سروستان (۱۶ تم)</span>
-          </h3>
-          <span className="text-[10px] text-neutral font-bold">
-            تم فعال: {themes.find((t) => t.id === theme)?.persianName}
-          </span>
+          <div className="flex items-center gap-2">
+            <Bell className="w-4 h-4 text-primary" />
+            <h3 className="text-xs font-black text-base-content">
+              اعلان‌ها و هشدارهای سیستمی مودل
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={handleToggleNotifs}
+            className={`px-3 py-1 rounded-full text-[11px] font-black transition cursor-pointer flex items-center gap-1.5 ${
+              notifsEnabled
+                ? 'bg-success text-success-content shadow-xs'
+                : 'bg-base-500/25 text-neutral'
+            }`}
+          >
+            <span>{notifsEnabled ? 'فعال' : 'غیرفعال'}</span>
+          </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-          {themes.map((t) => {
-            const isSelected = theme === t.id;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setTheme(t.id)}
-                className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-2 transition cursor-pointer ${
-                  isSelected
-                    ? 'border-primary bg-primary/10 shadow-sm'
-                    : 'border-base-500/25 hover:border-base-500/50 hover:bg-base-500/10'
-                }`}
-              >
-                <div className="flex items-center -space-x-1">
-                  <span
-                    className="w-4 h-4 rounded-full border border-black/25 z-10"
-                    style={{ backgroundColor: t.primary }}
-                  />
-                  <span
-                    className="w-4 h-4 rounded-full border border-black/25"
-                    style={{ backgroundColor: t.base }}
-                  />
-                </div>
-                <span className={`text-[11px] font-bold truncate ${isSelected ? 'text-primary' : 'text-base-content'}`}>
-                  {t.persianName}
-                </span>
-              </button>
-            );
-          })}
+        <p className="text-[11px] text-neutral leading-relaxed">
+          ارسال مستقیم اطلاعیه‌های اساتید، پیام‌های جدید، و ثبت نمرات سامانه مودل به عنوان نوتیفیکیشن در دستگاه شما.
+          (موعد و ددلاین‌های تکالیف طبق برنامه به سروستان واگذار می‌شوند).
+        </p>
+
+        <div className="pt-1 flex items-center justify-between gap-2 flex-wrap">
+          <span className="text-[10px] text-neutral font-medium">
+            وضعیت دسترسی مرورگر: {getNotificationPermission() === 'granted' ? 'تایید شده' : 'نیاز به تایید دسترسی'}
+          </span>
+          <button
+            type="button"
+            onClick={handleTestNotif}
+            className="px-3 py-1.5 rounded-xl bg-primary text-primary-content text-xs font-bold hover:brightness-110 active:scale-95 transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+          >
+            <BellRing className="w-3.5 h-3.5" />
+            <span>ارسال اعلان آزمایشی</span>
+          </button>
         </div>
       </div>
 
