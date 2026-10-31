@@ -183,9 +183,11 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
   const studentFiles = submissionPlugins.find((p) => p.type === 'file')?.fileareas?.[0]?.files || [];
 
   // محاسبه وضعیت دقیق زمانی با استفاده از پارسر فارسی
+  // توجه: فقط در صورتی که تکلیف واقعاً تحویل شده باشد (isSubmitted)، زمان تحویل به تابع ارسال می‌شود
   const timing = formatAssignmentTiming(
     assignment.duedate,
-    currentSubmission?.timemodified || (isSubmitted ? currentSubmission?.timecreated : null)
+    isSubmitted ? (currentSubmission?.timemodified || currentSubmission?.timecreated) : null,
+    isSubmitted
   );
 
   // بررسی تنظیمات بارگذاری تعیین‌شده توسط استاد
@@ -225,7 +227,7 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
                 <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/25">
                   {cleanCourseName(assignment.courseName || assignment.courseShortName)}
                 </span>
-                {assignment.cutoffdate && (
+                {Boolean(assignment.id) && (
                   <span className="text-[10px] text-neutral/80 font-mono">
                     شناسه: {toFaDigits(assignment.id)}
                   </span>
@@ -263,7 +265,7 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
                 <p className="font-black text-base-content text-xs">
                   {formatPersianDate(assignment.duedate)}
                 </p>
-                {assignment.cutoffdate && (
+                {Boolean(assignment.cutoffdate && assignment.cutoffdate > 0) && (
                   <p className="text-[10px] text-neutral flex items-center gap-1 pt-1 border-t border-base-500/15">
                     <ShieldAlert className="w-3 h-3 text-amber-500" />
                     <span>مهلت قطعی بسته شدن: {formatPersianDate(assignment.cutoffdate)}</span>
@@ -313,7 +315,7 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
                     </span>
                   )}
                 </div>
-                {currentSubmission?.timemodified && (
+                {(isSubmitted || isDraft) && currentSubmission?.timemodified && (
                   <p className="text-[10px] text-neutral pt-1 border-t border-base-500/15">
                     زمان ثبت آخرین نسخه: {formatPersianDate(currentSubmission.timemodified)}
                   </p>
@@ -551,13 +553,13 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
             </div>
           </div>
 
-          {/* پاورقی دکمه‌های عملیاتی */}
+          {/* پاورقی دکمه‌های عملیاتی سبک سروستان */}
           <div className="p-3.5 border-t border-base-500/20 bg-base-500/10 flex items-center justify-between gap-2 flex-wrap">
             <motion.button
               whileTap={{ scale: 0.96 }}
               type="button"
               onClick={handleExportSarv}
-              className="px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 text-xs font-bold hover:bg-emerald-500/25 transition flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 rounded-2xl bg-success-soft border border-success/30 text-success text-xs font-bold hover:bg-success/20 transition flex items-center gap-1.5 cursor-pointer"
               title="انتقال به برنامه روزانه سروستان"
             >
               <Share2 className="w-3.5 h-3.5" />
@@ -570,7 +572,7 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
                 type="button"
                 onClick={handleSaveSubmission}
                 disabled={actionLoading || (!selectedFile && !onlineText.trim())}
-                className="px-4 py-2 rounded-xl bg-primary text-primary-content text-xs font-black hover:brightness-110 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-md"
+                className="px-4 py-2 rounded-2xl bg-primary text-primary-content text-xs font-black hover:brightness-110 active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-md"
               >
                 {actionLoading ? (
                   <>
@@ -591,7 +593,7 @@ export default function AssignmentDetailModal({ assignment, onClose, onSubmitted
                   type="button"
                   onClick={handleSubmitForGrading}
                   disabled={actionLoading}
-                  className="px-3.5 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black hover:bg-emerald-700 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-md"
+                  className="px-3.5 py-2 rounded-2xl bg-success text-success-content text-xs font-black hover:brightness-110 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-md"
                   title="تایید نهایی جهت تصحیح توسط استاد"
                 >
                   <Send className="w-3.5 h-3.5" />

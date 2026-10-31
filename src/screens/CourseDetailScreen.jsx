@@ -318,7 +318,7 @@ export default function CourseDetailScreen({ course, onBack }) {
   });
 
   return (
-    <div className="space-y-4 pb-28 max-w-2xl mx-auto">
+    <div className="p-3.5 sm:p-4 space-y-4 max-w-2xl mx-auto min-w-0">
       {/* سربرگ درس با نشان و عنوان */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
@@ -332,7 +332,7 @@ export default function CourseDetailScreen({ course, onBack }) {
             onClick={onBack}
             className="text-xs text-neutral hover:text-primary transition flex items-center gap-1 font-bold cursor-pointer"
           >
-            <ArrowRight className="w-4 h-4" />
+            <ChevronLeft className="w-4 h-4 rotate-180" />
             <span>بازگشت به فهرست دروس</span>
           </motion.button>
           <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/25">
@@ -344,8 +344,8 @@ export default function CourseDetailScreen({ course, onBack }) {
         </h2>
       </motion.div>
 
-      {/* تب‌های رسمی ۴گانه درس در اپ مودل */}
-      <div className="sarv-card p-1.5 grid grid-cols-4 gap-1">
+      {/* تب‌های رسمی ۴گانه درس در اپ مودل — سبک کنترل تقسیم‌شده سروستان */}
+      <div className="sarv-seg">
         {COURSE_TABS.map((tab) => {
           const { id, label, Icon } = tab;
           const isActive = activeTab === id;

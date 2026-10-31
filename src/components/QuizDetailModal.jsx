@@ -142,7 +142,7 @@ export default function QuizDetailModal({ quiz, courseName, onClose }) {
               </p>
             </div>
 
-            {quiz.timeopen && (
+            {Boolean(quiz.timeopen && quiz.timeopen > 0) && (
               <div className="p-3 rounded-2xl bg-base-500/15 border border-base-500/30 space-y-1">
                 <div className="flex items-center gap-1.5 text-neutral text-[11px] font-bold">
                   <Calendar className="w-3.5 h-3.5 text-success" />
@@ -154,7 +154,7 @@ export default function QuizDetailModal({ quiz, courseName, onClose }) {
               </div>
             )}
 
-            {quiz.timeclose && (
+            {Boolean(quiz.timeclose && quiz.timeclose > 0) && (
               <div className="p-3 rounded-2xl bg-base-500/15 border border-base-500/30 space-y-1">
                 <div className="flex items-center gap-1.5 text-neutral text-[11px] font-bold">
                   <Calendar className="w-3.5 h-3.5 text-error" />

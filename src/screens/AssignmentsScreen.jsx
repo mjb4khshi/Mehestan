@@ -53,9 +53,9 @@ export default function AssignmentsScreen() {
   };
 
   return (
-    <div className="p-4 space-y-4 pb-24 max-w-2xl mx-auto">
-      {/* سوییچ نوع فعالیت: تکالیف یا آزمون‌های آنلاین */}
-      <div className="sarv-card p-1.5 grid grid-cols-2 gap-1.5">
+    <div className="p-3.5 sm:p-4 space-y-4 max-w-2xl mx-auto min-w-0">
+      {/* سوییچ نوع فعالیت: تکالیف یا آزمون‌های آنلاین سبک سروستان */}
+      <div className="sarv-seg">
         <button
           type="button"
           onClick={() => setActivityType('assign')}
@@ -87,7 +87,7 @@ export default function AssignmentsScreen() {
         <>
           {/* فیلترها و دکمه انتقال کلی به سروستان */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-base-500/20 border border-base-500/30 text-xs">
+            <div className="sarv-seg text-xs">
               <button
                 type="button"
                 onClick={() => setFilter('pending')}
@@ -128,7 +128,7 @@ export default function AssignmentsScreen() {
                 whileTap={{ scale: 0.95 }}
                 type="button"
                 onClick={() => exportAllAssignmentsToSarvestan(filteredAssignments)}
-                className="px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 text-xs font-bold hover:bg-emerald-500/25 transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+                className="px-3 py-2 rounded-2xl bg-success-soft border border-success/30 text-success text-xs font-bold hover:bg-success/20 transition flex items-center gap-1.5 cursor-pointer shadow-sm"
               >
                 <Share2 className="w-3.5 h-3.5" />
                 <span>انتقال به سروستان</span>

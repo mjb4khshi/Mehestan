@@ -133,7 +133,7 @@ export default function MessagesScreen() {
   };
 
   return (
-    <div className="space-y-4 pb-28">
+    <div className="p-3.5 sm:p-4 space-y-4 max-w-2xl mx-auto min-w-0">
       {/* نمای گفتگوی فعال (صفحه چت تمام صفحه در موبایل) */}
       <AnimatePresence>
         {activeConversation ? (

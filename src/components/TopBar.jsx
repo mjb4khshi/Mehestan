@@ -4,7 +4,7 @@ import {
   Bell,
   RefreshCw,
   LogOut,
-  ArrowRight,
+  ChevronLeft,
   Check,
   X,
   Sparkles,
@@ -19,7 +19,7 @@ import { getNotifications } from '../services/moodle/api';
 import { cleanPersianText, toFaDigits } from '../utils/persianUtils';
 
 export default function TopBar({ title, onBack, showBack = false }) {
-  const { theme, setTheme, themes, isDark } = useTheme();
+  const { theme, setTheme, themes, isDark, activeThemeMeta } = useTheme();
   const { session, siteInfo, refreshData, loading, logout, isAuthenticated } = useMoodleAuth();
   const [themeSheetOpen, setThemeSheetOpen] = useState(false);
   const [notifySheetOpen, setNotifySheetOpen] = useState(false);
@@ -82,84 +82,115 @@ export default function TopBar({ title, onBack, showBack = false }) {
     }
   };
 
+  const unreadNotifs = notifications.filter((n) => n.unread).length;
+
   return (
     <>
-      <header className="sticky top-0 z-40 bg-base/80 backdrop-blur-xl border-b border-base-500/30 px-4 py-2.5 flex items-center justify-between">
-        {/* سمت راست: نشان مهستان یا دکمه بازگشت و عنوان */}
-        <div className="flex items-center gap-3 min-w-0">
-          {showBack ? (
+      <header
+        className="sticky top-0 z-40 w-full backdrop-blur-md bg-base/92 border-b border-base-500/40 transition-colors will-change-transform"
+        style={{
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          transform: 'translateZ(0)',
+        }}
+      >
+        <div className="mx-auto max-w-[430px] md:max-w-[560px] lg:max-w-none h-14 flex items-center justify-between gap-2 px-3">
+          {/* سمت راست: نشان مهستان یا دکمه بازگشت و عنوان */}
+          <div className="flex items-center gap-2.5 shrink-0 min-w-0">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0">
+              {showBack ? (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="w-8 h-8 rounded-xl grid place-items-center text-neutral hover:text-base-content bg-base-500/20 hover:bg-base-500/40 active:scale-95 transition-all outline-none cursor-pointer"
+                  aria-label="بازگشت"
+                >
+                  <ChevronLeft className="w-4.5 h-4.5 rotate-180" />
+                </button>
+              ) : (
+                <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/25 grid place-items-center shadow-sm">
+                  <img src="./mehestan-icon.svg" alt="مهستان" className="w-5 h-5" />
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col leading-tight min-w-0">
+              <h1 className="text-[14px] font-bold text-base-content flex items-center gap-1.5 truncate">
+                {title || (
+                  <>
+                    <span>مهستان</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-secondary-soft text-secondary">
+                      مودل
+                    </span>
+                  </>
+                )}
+              </h1>
+              <span className="text-[10px] text-neutral truncate">
+                {title ? 'سامانه یادگیری الکترونیکی' : (siteInfo?.sitename || 'دانشگاه صنعتی خواجه نصیرالدین طوسی')}
+              </span>
+            </div>
+          </div>
+
+          {/* سمت چپ: ابزارهای سریع (تم، اعلان، همگام‌سازی، خروج) */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* انتخابگر تم مدرن سروستان */}
             <button
               type="button"
-              onClick={onBack}
-              className="p-2 rounded-xl text-neutral hover:text-base-content hover:bg-base-500/20 transition cursor-pointer"
-              title="بازگشت"
+              onClick={() => setThemeSheetOpen(true)}
+              className="flex items-center gap-1.5 h-8 px-2 rounded-xl bg-base-500/30 hover:bg-base-500/50 border border-base-500/40 text-neutral hover:text-base-content active:scale-95 transition-all outline-none cursor-pointer"
+              title={`تغییر تم (تم فعلی: ${activeThemeMeta?.persianName || 'تم'})`}
             >
-              <ArrowRight className="w-5 h-5" />
+              <span
+                className="w-3.5 h-3.5 rounded-full shadow-sm ring-1 ring-black/20"
+                style={{ backgroundColor: activeThemeMeta?.primary || '#0077c2' }}
+              />
+              <span className="text-[11px] font-medium hidden xs:inline max-w-[65px] truncate">
+                {activeThemeMeta?.persianName?.split(' ')[0] || 'تم'}
+              </span>
+              <Palette className="w-3.5 h-3.5 text-neutral" />
             </button>
-          ) : (
-            <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/25 grid place-items-center shadow-sm shrink-0">
-              <img src="./mehestan-icon.svg" alt="مهستان" className="w-5 h-5" />
-            </div>
-          )}
 
-          <div className="min-w-0">
-            <h1 className="text-sm font-black text-base-content truncate tracking-tight">{title || 'مهستان'}</h1>
-            {isAuthenticated && siteInfo?.fullname && (
-              <p className="text-[10px] text-neutral truncate font-medium">
-                {cleanPersianText(siteInfo.fullname)}
-              </p>
+            {/* زنگوله اعلانات */}
+            {isAuthenticated && (
+              <button
+                type="button"
+                onClick={() => setNotifySheetOpen(true)}
+                className="relative w-8 h-8 rounded-xl bg-base-500/30 hover:bg-base-500/50 border border-base-500/40 grid place-items-center text-neutral hover:text-base-content active:scale-95 transition-all outline-none cursor-pointer"
+                title="اعلانات و پیام‌ها"
+              >
+                <Bell className="w-4 h-4" />
+                {unreadNotifs > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-primary text-primary-content text-[9px] font-bold flex items-center justify-center shadow-sm">
+                    {toFaDigits(unreadNotifs)}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {/* همگام‌سازی زنده با مودل */}
+            {isAuthenticated && (
+              <button
+                type="button"
+                onClick={refreshData}
+                disabled={loading}
+                className="w-8 h-8 rounded-xl bg-base-500/30 hover:bg-base-500/50 border border-base-500/40 grid place-items-center text-neutral hover:text-base-content active:scale-95 transition-all outline-none cursor-pointer"
+                title="به‌روزرسانی اطلاعات از مودل"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-primary' : ''}`} />
+              </button>
+            )}
+
+            {/* خروج */}
+            {isAuthenticated && (
+              <button
+                type="button"
+                onClick={logout}
+                className="w-8 h-8 rounded-xl bg-base-500/30 hover:bg-danger-soft border border-base-500/40 grid place-items-center text-neutral hover:text-danger active:scale-95 transition-all outline-none cursor-pointer"
+                title="خروج از حساب"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
             )}
           </div>
-        </div>
-
-        {/* سمت چپ: دکمه‌های تم، همگام‌سازی، اعلان و خروج */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {/* دکمه انتخابگر ۱۶ تم رسمی سروستان */}
-          <button
-            type="button"
-            onClick={() => setThemeSheetOpen(true)}
-            className="p-2 rounded-xl text-neutral hover:text-primary hover:bg-base-500/20 transition cursor-pointer"
-            title="پالت تم‌های سروستان"
-          >
-            <Palette className="w-4 h-4" />
-          </button>
-
-          {/* دکمه اعلان‌ها و پیام‌های دانشگاه */}
-          {isAuthenticated && (
-            <button
-              type="button"
-              onClick={() => setNotifySheetOpen(true)}
-              className="p-2 rounded-xl text-neutral hover:text-primary hover:bg-base-500/20 transition cursor-pointer relative"
-              title="اعلان‌ها و رویدادها"
-            >
-              <Bell className="w-4 h-4" />
-            </button>
-          )}
-
-          {/* دکمه همگام‌سازی زنده با مودل */}
-          {isAuthenticated && (
-            <button
-              type="button"
-              onClick={refreshData}
-              disabled={loading}
-              className="p-2 rounded-xl text-neutral hover:text-primary hover:bg-base-500/20 transition cursor-pointer"
-              title="به‌روزرسانی اطلاعات از مودل"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-primary' : ''}`} />
-            </button>
-          )}
-
-          {/* دکمه خروج */}
-          {isAuthenticated && (
-            <button
-              type="button"
-              onClick={logout}
-              className="p-2 rounded-xl text-neutral hover:text-error hover:bg-error/10 transition cursor-pointer"
-              title="خروج از حساب"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          )}
         </div>
       </header>
 

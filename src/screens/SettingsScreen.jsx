@@ -87,7 +87,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <div className="p-4 space-y-4 pb-28 max-w-2xl mx-auto text-right">
+    <div className="p-3.5 sm:p-4 space-y-4 max-w-2xl mx-auto text-right min-w-0">
       {/* سربرگ تنظیمات */}
       <div className="sarv-card p-4 space-y-1 shadow-sm">
         <h2 className="text-sm font-black text-base-content flex items-center gap-2">

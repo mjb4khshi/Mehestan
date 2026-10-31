@@ -19,7 +19,7 @@ export default function CalendarScreen() {
     .sort((a, b) => a.duedate - b.duedate);
 
   return (
-    <div className="p-4 space-y-4 pb-24 max-w-2xl mx-auto">
+    <div className="p-3.5 sm:p-4 space-y-4 max-w-2xl mx-auto min-w-0">
       <div className="sarv-card p-4 space-y-1 shadow-sm">
         <h2 className="text-sm font-black text-base-content flex items-center gap-2">
           <CalendarIcon className="w-4 h-4 text-primary" />

@@ -78,48 +78,54 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-base text-base-content flex flex-col pb-24 selection:bg-primary/20">
-      <TopBar
-        title={selectedCourse ? cleanCourseName(selectedCourse.fullname) : 'مهستان'}
-        showBack={Boolean(selectedCourse)}
-        onBack={handleBackToCourses}
-      />
+    <div className="min-h-full bg-base text-base-content selection:bg-primary/30 selection:text-primary">
+      <div className="lg:flex lg:justify-center lg:items-stretch lg:gap-4 lg:px-4">
+        <div className="mobile-shell min-h-screen relative flex flex-col justify-between">
+          <TopBar
+            title={selectedCourse ? cleanCourseName(selectedCourse.fullname) : null}
+            showBack={Boolean(selectedCourse)}
+            onBack={handleBackToCourses}
+          />
 
-      {/* ترنزیشن روان و فنری صفحات بر اساس جهت حرکت سبک سروستان */}
-      <AnimatePresence mode="wait" custom={slideDir}>
-        <motion.main
-          key={selectedCourse ? `course-${selectedCourse.id}` : activeTab}
-          custom={slideDir}
-          variants={pageVariants}
-          initial="enter"
-          animate="center"
-          exit="exit"
-          className="flex-1 overflow-x-hidden"
-        >
-          {selectedCourse ? (
-            <CourseDetailScreen course={selectedCourse} onBack={handleBackToCourses} />
-          ) : activeTab === 'courses' ? (
-            <HomeScreen
-              onSelectCourse={handleSelectCourse}
-              onGoToAssignments={() => handleChangeTab('assignments')}
-            />
-          ) : activeTab === 'assignments' ? (
-            <AssignmentsScreen />
-          ) : activeTab === 'messages' ? (
-            <MessagesScreen />
-          ) : activeTab === 'calendar' ? (
-            <CalendarScreen />
-          ) : (
-            <SettingsScreen />
-          )}
-        </motion.main>
-      </AnimatePresence>
+          <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden touch-pan-y select-none mobile-pad-bottom">
+            {/* ترنزیشن روان و فنری صفحات بر اساس جهت حرکت سبک سروستان */}
+            <AnimatePresence mode="wait" custom={slideDir}>
+              <motion.main
+                key={selectedCourse ? `course-${selectedCourse.id}` : activeTab}
+                custom={slideDir}
+                variants={pageVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className="flex-1 min-w-0"
+              >
+                {selectedCourse ? (
+                  <CourseDetailScreen course={selectedCourse} onBack={handleBackToCourses} />
+                ) : activeTab === 'courses' ? (
+                  <HomeScreen
+                    onSelectCourse={handleSelectCourse}
+                    onGoToAssignments={() => handleChangeTab('assignments')}
+                  />
+                ) : activeTab === 'assignments' ? (
+                  <AssignmentsScreen />
+                ) : activeTab === 'messages' ? (
+                  <MessagesScreen />
+                ) : activeTab === 'calendar' ? (
+                  <CalendarScreen />
+                ) : (
+                  <SettingsScreen />
+                )}
+              </motion.main>
+            </AnimatePresence>
+          </div>
 
-      <BottomNav
-        activeTab={selectedCourse ? 'courses' : activeTab}
-        onChangeTab={handleChangeTab}
-        assignmentBadgeCount={pendingCount}
-      />
+          <BottomNav
+            activeTab={selectedCourse ? 'courses' : activeTab}
+            onChangeTab={handleChangeTab}
+            assignmentBadgeCount={pendingCount}
+          />
+        </div>
+      </div>
     </div>
   );
 }

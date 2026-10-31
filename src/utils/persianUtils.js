@@ -78,9 +78,9 @@ export function formatPersianDate(timestamp, includeTime = true) {
 
 /**
  * محاسبه وضعیت زمانی دقیق تکلیف، تاخیر، تعجیل یا زمان باقی‌مانده (سبک مودل و سروستان)
- * خروجی: { text, isLate, isEarly, isExpired, isPending, colorClass }
+ * خروجی: { text, isLate, isEarly, isExpired, isPending, colorClass, badgeBg }
  */
-export function formatAssignmentTiming(dueTimestamp, submissionTimestamp = null) {
+export function formatAssignmentTiming(dueTimestamp, submissionTimestamp = null, isSubmitted = null) {
   if (!dueTimestamp) {
     return {
       text: 'بدون مهلت تحویل',
@@ -89,14 +89,18 @@ export function formatAssignmentTiming(dueTimestamp, submissionTimestamp = null)
       isExpired: false,
       isPending: false,
       colorClass: 'text-neutral',
+      badgeBg: 'bg-base-500/20 text-neutral border-base-500/30',
     };
   }
 
   const nowSec = Math.floor(Date.now() / 1000);
   const dueSec = Math.floor(dueTimestamp);
 
+  // شرط قطعی تحویل: تنها در صورتی که تکلیف واقعاً ثبت نهایی شده باشد (isSubmitted === true یا عدم رد شدن آن به همراه تایم‌استمپ)
+  const actuallySubmitted = isSubmitted !== null ? Boolean(isSubmitted && submissionTimestamp) : Boolean(submissionTimestamp);
+
   // اگر دانشجو تکلیف را تحویل داده باشد
-  if (submissionTimestamp) {
+  if (actuallySubmitted && submissionTimestamp) {
     const subSec = Math.floor(submissionTimestamp);
     const diff = subSec - dueSec;
 
