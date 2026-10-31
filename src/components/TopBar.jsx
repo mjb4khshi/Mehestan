@@ -109,8 +109,8 @@ export default function TopBar({ title, onBack, showBack = false }) {
                   <ChevronLeft className="w-4.5 h-4.5 rotate-180" />
                 </button>
               ) : (
-                <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/25 grid place-items-center shadow-sm">
-                  <img src="./mehestan-icon.svg" alt="مهستان" className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/25 grid place-items-center shadow-sm overflow-hidden">
+                  <img src="/logo.svg" alt="مهستان" className="w-6 h-6 object-contain" />
                 </div>
               )}
             </div>

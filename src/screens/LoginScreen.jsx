@@ -173,15 +173,20 @@ export default function LoginScreen() {
       <div className="absolute bottom-1/4 -left-20 w-80 h-80 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md space-y-5 relative z-10">
-        {/* نشان و هویت مهستان */}
-        <div className="text-center space-y-1.5">
-          <div className="w-14 h-14 mx-auto rounded-2xl bg-primary/10 border border-primary/25 grid place-items-center shadow-lg shadow-primary/15 sarv-glow-primary">
-            <img src="./mehestan-icon.svg" alt="مهستان" className="w-8 h-8" />
+        {/* بنر و نشان هویت رسمی مهستان */}
+        <div className="space-y-2.5">
+          <div className="w-full rounded-3xl overflow-hidden shadow-2xl border border-white/10 relative group">
+            <img
+              src="/banner.png"
+              alt="مهستان - تجربه مدرن مودل"
+              className="w-full h-auto object-cover select-none transform transition-transform duration-500 group-hover:scale-[1.02]"
+            />
           </div>
-          <h1 className="text-2xl font-black text-base-content tracking-tight">مهستان</h1>
-          <p className="text-xs text-neutral font-medium">کلاینت بومی و همگام سامانه آموزش الکترونیکی و مجازی (Moodle LMS)</p>
-          <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-base-500/25 border border-base-500/40 text-neutral text-[11px] font-bold">
-            <span>همگام با سروستان</span>
+          <div className="flex items-center justify-between px-1 text-[11px] text-neutral font-medium">
+            <span>کلاینت هوشمند سامانه یادگیری مودل</span>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-base-500/25 border border-base-500/40 text-[10px] font-bold text-base-content">
+              <span>همگام با سروستان</span>
+            </div>
           </div>
         </div>
 

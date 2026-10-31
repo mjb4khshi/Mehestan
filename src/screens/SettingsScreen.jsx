@@ -396,6 +396,24 @@ export default function SettingsScreen() {
         </div>
       </div>
 
+      {/* هویت بصری و درباره مهستان */}
+      <div className="sarv-card p-4 space-y-3 shadow-sm overflow-hidden">
+        <div className="w-full rounded-2xl overflow-hidden border border-base-500/30 shadow-md">
+          <img
+            src="/banner.png"
+            alt="مهستان - کلاینت مدرن مودل"
+            className="w-full h-auto object-cover select-none"
+          />
+        </div>
+        <div className="flex items-center justify-between text-[11px] text-neutral pt-0.5">
+          <div className="flex items-center gap-2">
+            <img src="/logo.svg" alt="مهستان" className="w-5 h-5 rounded-md object-contain" />
+            <span className="font-bold text-base-content">مهستان (Mehestan)</span>
+          </div>
+          <span className="font-medium">همگام با سروستان</span>
+        </div>
+      </div>
+
       {/* پاک‌سازی حافظه موقت و خروج */}
       <div className="sarv-card p-4 space-y-2.5 shadow-sm">
         <h3 className="text-xs font-black text-base-content">عملیات حساب و حافظه</h3>
