@@ -291,6 +291,29 @@ export function initSarvestanBridgeListener(onDataReceived) {
 }
 
 /**
+ * باز کردن مستقیم و امن سروستان از طریق اینترفیس نیتیو اندروید یا دیپ‌لینک
+ */
+export function openSarvestanApp(deepLink) {
+  if (typeof window !== 'undefined' && window.SarvestanLauncher && typeof window.SarvestanLauncher.openSarvestan === 'function') {
+    try {
+      const ok = window.SarvestanLauncher.openSarvestan(deepLink);
+      if (ok) return true;
+    } catch (e) {
+      console.warn('SarvestanLauncher error:', e);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      window.location.href = deepLink;
+    } catch (e) {
+      console.warn('Deep link launch skipped:', e);
+    }
+  }
+  return true;
+}
+
+/**
  * همگام‌سازی یک تکلیف با سروستان
  */
 export function exportAssignmentToSarvestan(assignment, courseName = '') {
@@ -307,16 +330,7 @@ export function exportAssignmentToSarvestan(assignment, courseName = '') {
 
   const encoded = encodeURIComponent(JSON.stringify(payload));
   const deepLink = `sarvestan://import-task?data=${encoded}`;
-
-  if (typeof window !== 'undefined') {
-    try {
-      window.location.href = deepLink;
-      return true;
-    } catch (e) {
-      console.warn('Deep link launch skipped:', e);
-    }
-  }
-
+  openSarvestanApp(deepLink);
   return true;
 }
 
@@ -337,15 +351,7 @@ export function exportAllAssignmentsToSarvestan(assignments = []) {
 
   const encoded = encodeURIComponent(JSON.stringify(payload));
   const deepLink = `sarvestan://import-batch-tasks?data=${encoded}`;
-
-  if (typeof window !== 'undefined') {
-    try {
-      window.location.href = deepLink;
-    } catch (e) {
-      console.warn('Batch deep link launch skipped:', e);
-    }
-  }
-
+  openSarvestanApp(deepLink);
   return true;
 }
 
