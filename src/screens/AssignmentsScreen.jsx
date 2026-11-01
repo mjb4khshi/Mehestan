@@ -168,8 +168,13 @@ export default function AssignmentsScreen() {
             <motion.button
               whileTap={{ scale: 0.98 }}
               type="button"
-              onClick={() => exportAllAssignmentsToSarvestan(filteredAssignments)}
-              className="w-full py-2 px-3 rounded-xl bg-success-soft border border-success/30 text-success text-xs font-bold hover:bg-success/20 transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+              onClick={() => {
+                const list = filteredAssignments.length > 0 ? filteredAssignments : assignments;
+                exportAllAssignmentsToSarvestan(list);
+                setExportedMsg(`${toFaDigits(list.length)} تکلیف به پلنر سروستان ارسال شد.`);
+                setTimeout(() => setExportedMsg(''), 3500);
+              }}
+              className="w-full py-2.5 px-3 rounded-xl bg-success-soft border border-success/30 text-success text-xs font-black hover:bg-success/20 active:scale-98 transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
             >
               <Share2 className="w-3.5 h-3.5" />
               <span>انتقال تکالیف به تقویم سروستان</span>

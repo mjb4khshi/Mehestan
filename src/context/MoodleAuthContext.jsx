@@ -15,6 +15,10 @@ import {
   getCachedCourses,
   cacheAssignments,
   getCachedAssignments,
+  cacheSiteInfo,
+  getCachedSiteInfo,
+  cacheQuizzes,
+  getCachedQuizzes,
 } from '../services/moodle/storage';
 import { setupDeepLinkListener } from '../services/moodle/sso';
 
@@ -145,10 +149,14 @@ const DEMO_QUIZZES = [
 
 export function MoodleAuthProvider({ children }) {
   const [session, setSession] = useState(getMoodleSession);
-  const [siteInfo, setSiteInfo] = useState(null);
+  const [siteInfo, setSiteInfo] = useState(getCachedSiteInfo);
   const [courses, setCourses] = useState(getCachedCourses);
   const [assignments, setAssignments] = useState(getCachedAssignments);
-  const [quizzes, setQuizzes] = useState(() => (getMoodleSession()?.isDemo ? DEMO_QUIZZES : []));
+  const [quizzes, setQuizzes] = useState(() => {
+    const s = getMoodleSession();
+    if (s?.isDemo) return DEMO_QUIZZES;
+    return getCachedQuizzes();
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -158,6 +166,7 @@ export function MoodleAuthProvider({ children }) {
     // بارگذاری مشخصات دانشجو
     const info = await getSiteInfo(siteUrl, token);
     setSiteInfo(info);
+    cacheSiteInfo(info);
 
     const fullSession = {
       siteUrl,
@@ -234,6 +243,7 @@ export function MoodleAuthProvider({ children }) {
         }
       }
       setQuizzes(realQuizzes);
+      cacheQuizzes(realQuizzes);
     } catch {
       setQuizzes([]);
     }

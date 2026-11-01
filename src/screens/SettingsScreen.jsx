@@ -760,10 +760,10 @@ export default function SettingsScreen() {
           <button
             type="button"
             onClick={logout}
-            className="w-full py-2 px-3 rounded-xl bg-error text-white text-xs font-black hover:brightness-110 active:scale-98 transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
+            className="w-full py-2.5 px-3 rounded-xl bg-danger text-white text-xs font-black hover:brightness-110 active:scale-98 transition cursor-pointer shadow-sm flex items-center justify-center gap-2 border border-danger"
           >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>خروج از حساب مودل</span>
+            <LogOut className="w-4 h-4 text-white" />
+            <span className="text-white font-black">خروج از حساب مودل</span>
           </button>
         </div>
       </div>

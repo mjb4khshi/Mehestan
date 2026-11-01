@@ -59,7 +59,12 @@ export async function fetchMoodlePublicConfig(rawSiteUrl) {
       throw new Error(`پاسخی از وب‌سرویس دانشگاه دریافت نشد (${res.status})`);
     }
 
-    data = await res.json();
+    const rawConfigText = await res.text();
+    try {
+      data = JSON.parse(rawConfigText);
+    } catch {
+      throw new Error('قالب پاسخ دریافتی از سرور مودل در فرمت JSON معتبر نیست.');
+    }
   }
 
   // داده‌های برگشتی سرویس مودل به‌صورت آرایه است
@@ -438,7 +443,13 @@ export async function uploadMoodleFile(baseUrl, token, file, itemId = 0) {
     throw new Error(`خطای آپلود فایل در مودل (${res.status})`);
   }
 
-  const data = await res.json();
+  const rawUploadResp = await res.text();
+  let data;
+  try {
+    data = JSON.parse(rawUploadResp);
+  } catch {
+    throw new Error('پاسخ سرور مودل هنگام آپلود فایل در قالب JSON معتبر دریافت نشد.');
+  }
   if (data.error || data.errorcode) {
     throw new Error(data.error || data.message || 'خطا در بارگذاری فایل در سرور مودل');
   }

@@ -190,18 +190,6 @@ export default function TopBar({ title, onBack, showBack = false }) {
                 <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-primary' : ''}`} />
               </button>
             )}
-
-            {/* خروج */}
-            {isAuthenticated && (
-              <button
-                type="button"
-                onClick={logout}
-                className="w-8 h-8 rounded-xl bg-base-500/30 hover:bg-danger-soft border border-base-500/40 grid place-items-center text-neutral hover:text-danger active:scale-95 transition-all outline-none cursor-pointer"
-                title="خروج از حساب"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            )}
           </div>
         </div>
       </header>

@@ -519,7 +519,20 @@ export function exportAssignmentsAsIcs(assignments = []) {
 
   lines.push('END:VCALENDAR');
 
-  const icsBlob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+  const icsContent = lines.join('\r\n');
+
+  // ۱. پشتیبانی اختصاصی از کلاینت اندروید (ارسال مستقیم به تقویم‌های محلی گوشی از طریق Intent نیتیو)
+  if (typeof window !== 'undefined' && window.NativeNotifier && typeof window.NativeNotifier.exportCalendar === 'function') {
+    try {
+      const ok = window.NativeNotifier.exportCalendar(icsContent, 'mehestan_deadlines.ics');
+      if (ok) return true;
+    } catch (e) {
+      console.warn('NativeNotifier exportCalendar error:', e);
+    }
+  }
+
+  // ۲. دانلود مستقیم فایل در مرورگر وب
+  const icsBlob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
   const url = URL.createObjectURL(icsBlob);
   const anchor = document.createElement('a');
   anchor.href = url;
