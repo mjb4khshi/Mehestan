@@ -124,7 +124,7 @@ export default function HomeScreen({ onSelectCourse, onGoToAssignments }) {
       {nearestAssignment && (
         <section
           onClick={() => setSelectedAssignment(nearestAssignment)}
-          className="sarv-card p-3.5 lg:p-4 flex items-center justify-between gap-3 cursor-pointer hover:border-warn active:scale-[0.98] transition-all border-r-4 border-r-warn bg-warn-soft min-w-0 shadow-sm"
+          className="sarv-card p-3.5 lg:p-4 flex items-center justify-between gap-3 cursor-pointer hover:border-warn active:scale-[0.98] transition-all border-r-4 border-r-warn bg-warn-soft min-w-0 shadow-xs"
         >
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-warn text-warn-content grid place-items-center shrink-0 shadow-sm">
@@ -177,7 +177,7 @@ export default function HomeScreen({ onSelectCourse, onGoToAssignments }) {
                 <div
                   key={course.id}
                   onClick={() => onSelectCourse && onSelectCourse(course)}
-                  className={`sarv-card p-4 hover:border-primary/50 transition cursor-pointer space-y-2.5 group shadow-sm min-w-0 overflow-hidden border-r-4 ${toneStyle.borderRight}`}
+                  className={`sarv-card p-4 hover:border-primary/50 transition cursor-pointer space-y-2.5 group shadow-xs min-w-0 border-r-4 ${toneStyle.borderRight || 'border-r-primary'}`}
                 >
                   {/* عنوان درس در راست و بج کد درس در چپ — دقیقا در یک ارتفاع بدون فضای خالی */}
                   <div className="flex items-start justify-between gap-2 min-w-0">

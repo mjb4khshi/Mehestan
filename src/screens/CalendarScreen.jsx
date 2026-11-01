@@ -44,7 +44,7 @@ export default function CalendarScreen() {
               <div
                 key={evt.id}
                 onClick={() => setSelectedAssignment(evt)}
-                className={`sarv-card p-3.5 flex items-center justify-between gap-3 hover:border-primary/50 transition cursor-pointer group shadow-sm border-r-4 ${toneStyle.borderRight}`}
+                className={`sarv-card p-3.5 flex items-center justify-between gap-3 hover:border-primary/50 transition cursor-pointer group shadow-xs border-r-4 ${toneStyle.borderRight || 'border-r-primary'}`}
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className={`w-10 h-10 rounded-xl grid place-items-center shrink-0 ${toneStyle.bgSoft} ${toneStyle.text}`}>

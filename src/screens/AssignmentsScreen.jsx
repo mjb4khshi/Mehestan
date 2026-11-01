@@ -215,11 +215,8 @@ export default function AssignmentsScreen() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.03 }}
                     onClick={() => setSelectedAssignment(a)}
-                    className="sarv-card relative p-4 pr-5 space-y-3 hover:border-primary/50 transition cursor-pointer group shadow-xs overflow-hidden"
+                    className={`sarv-card p-4 space-y-3 hover:border-primary/50 transition cursor-pointer group shadow-xs border-r-4 ${toneStyle.borderRight || 'border-r-primary'}`}
                   >
-                    {/* نوار عمودی کپسولی و شیک نشانگر رنگ درس */}
-                    <div className={`absolute top-3.5 bottom-3.5 right-1.5 w-1 rounded-full ${toneStyle.bg || 'bg-primary'}`} />
-
                     {/* سطر اول: نام درس + وضعیت تحویل و اشتراک */}
                     <div className="flex items-start justify-between gap-2.5">
                       <div className="space-y-1 min-w-0 flex-1">
@@ -333,11 +330,8 @@ export default function AssignmentsScreen() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.03 }}
                   onClick={() => setSelectedQuiz(q)}
-                  className="sarv-card relative p-4 pr-5 space-y-3 hover:border-primary/50 transition cursor-pointer group shadow-xs overflow-hidden"
+                  className={`sarv-card p-4 space-y-3 hover:border-primary/50 transition cursor-pointer group shadow-xs border-r-4 ${qToneStyle.borderRight || 'border-r-secondary'}`}
                 >
-                  {/* نوار عمودی کپسولی و شیک نشانگر رنگ درس */}
-                  <div className={`absolute top-3.5 bottom-3.5 right-1.5 w-1 rounded-full ${qToneStyle.bg || 'bg-secondary'}`} />
-
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1 min-w-0 flex-1">
                       <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 ${qToneStyle.bgSoft} ${qToneStyle.text}`}>

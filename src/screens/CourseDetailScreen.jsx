@@ -445,7 +445,7 @@ export default function CourseDetailScreen({ course, onBack }) {
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`sarv-card p-4 space-y-2.5 shadow-sm border-r-4 ${toneStyle.borderRight}`}
+        className={`sarv-card p-4 space-y-2.5 shadow-xs border-r-4 ${toneStyle.borderRight || 'border-r-primary'}`}
       >
         <div className="flex items-center justify-between">
           <motion.button
