@@ -141,13 +141,17 @@ function extractCoreDigits(code) {
 export function matchCourseWithSarvestan(moodleCourse, sarvCourses = null) {
   if (!moodleCourse) return null;
   const list = Array.isArray(sarvCourses) && sarvCourses.length > 0 ? sarvCourses : getSarvestanCourses();
-  if (!list.length) return null;
+  if (!list || !list.length) return null;
 
-  const mCode = cleanCourseCode(moodleCourse.shortname || moodleCourse.id || '');
-  const mCoreDigits = extractCoreDigits(moodleCourse.shortname || moodleCourse.fullname || '');
-  const mName = cleanCourseName(moodleCourse.fullname || moodleCourse.name || '');
+  const isObj = typeof moodleCourse === 'object' && moodleCourse !== null;
+  const rawCode = isObj ? (moodleCourse.shortname || moodleCourse.code || moodleCourse.id || '') : moodleCourse;
+  const rawName = isObj ? (moodleCourse.fullname || moodleCourse.name || moodleCourse.courseName || moodleCourse.title || '') : moodleCourse;
 
-  // ۱. تطبیق بر اساس هسته ارقام کد درس
+  const mCode = cleanCourseCode(rawCode);
+  const mCoreDigits = extractCoreDigits(rawCode) || extractCoreDigits(rawName);
+  const mName = cleanCourseName(rawName);
+
+  // ۱. تطبیق بر اساس هسته ارقام کد درس (Core Digits Match)
   if (mCoreDigits) {
     const byCode = list.find((sc) => {
       const sCore = extractCoreDigits(sc.code || sc.id || '');
@@ -160,17 +164,20 @@ export function matchCourseWithSarvestan(moodleCourse, sarvCourses = null) {
   if (mCode) {
     const byFullCode = list.find((sc) => {
       const sCode = cleanCourseCode(sc.code || sc.id || '');
-      return sCode && sCode === mCode;
+      return sCode && (sCode === mCode || sCode.includes(mCode) || mCode.includes(sCode));
     });
     if (byFullCode) return byFullCode;
   }
 
-  // ۳. تطبیق بر اساس نام تمیز شده درس
+  // ۳. تطبیق بر اساس نام درس (برابری کامل، زیررشته یا اشتراک کلمات کلیدی نظیر «استاتیک»)
   if (mName) {
     const byName = list.find((sc) => {
-      const sName = cleanCourseName(sc.name || sc.title || '');
+      const sName = cleanCourseName(sc.name || sc.title || sc.course || '');
       if (!sName) return false;
-      return sName === mName || sName.includes(mName) || mName.includes(sName);
+      if (sName === mName || sName.includes(mName) || mName.includes(sName)) return true;
+      const sWords = sName.split(/\s+/).filter((w) => w.length >= 4);
+      const mWords = mName.split(/\s+/).filter((w) => w.length >= 4);
+      return sWords.some((sw) => mWords.includes(sw));
     });
     if (byName) return byName;
   }
@@ -323,16 +330,29 @@ export function openSarvestanApp(deepLink) {
  * همگام‌سازی یک تکلیف با سروستان
  */
 export function exportAssignmentToSarvestan(assignment, courseName = '') {
+  const sarvCourses = getSarvestanCourses();
   const rawName = courseName || assignment.courseName || assignment.courseShortName || '';
+  const rawShort = assignment.courseShortName || '';
   const cleanName = cleanCourseName(rawName);
-  const matchedSarv = matchCourseWithSarvestan(cleanName);
-  const finalCourseName = matchedSarv?.name || cleanName;
+
+  const matchedSarv = matchCourseWithSarvestan({
+    fullname: rawName,
+    name: cleanName,
+    shortname: rawShort,
+    code: rawShort,
+  }, sarvCourses);
+
+  const finalCourseName = matchedSarv?.name || matchedSarv?.title || cleanName;
+  const finalCourseCode = matchedSarv?.code || cleanCourseCode(rawShort) || null;
+  const finalColor = matchedSarv?.color || (matchedSarv ? getToneForCourse(matchedSarv) : getToneForCourse(finalCourseName));
   const isSubmitted = assignment.submissionStatus?.status === 'submitted' || Boolean(assignment.isSubmitted) || Boolean(assignment.gradeInfo?.grade);
   const dueMs = assignment.duedate ? (assignment.duedate > 1e11 ? assignment.duedate : assignment.duedate * 1000) : null;
 
   const payload = {
     title: cleanPersianText(assignment.name || 'تکلیف کلاسی'),
     courseName: finalCourseName,
+    courseCode: finalCourseCode,
+    color: finalColor,
     dueDate: dueMs ? new Date(dueMs).toISOString() : null,
     dueTimestamp: dueMs,
     status: isSubmitted ? 'done' : 'todo',
@@ -353,17 +373,30 @@ export function exportAssignmentToSarvestan(assignment, courseName = '') {
  * انتقال دسته‌جمعی تکالیف به سروستان
  */
 export function exportAllAssignmentsToSarvestan(assignments = []) {
+  const sarvCourses = getSarvestanCourses();
   const payload = assignments.map((a) => {
     const rawName = a.courseName || a.courseShortName || '';
+    const rawShort = a.courseShortName || '';
     const cleanName = cleanCourseName(rawName);
-    const matchedSarv = matchCourseWithSarvestan(cleanName);
-    const finalCourseName = matchedSarv?.name || cleanName;
+
+    const matchedSarv = matchCourseWithSarvestan({
+      fullname: rawName,
+      name: cleanName,
+      shortname: rawShort,
+      code: rawShort,
+    }, sarvCourses);
+
+    const finalCourseName = matchedSarv?.name || matchedSarv?.title || cleanName;
+    const finalCourseCode = matchedSarv?.code || cleanCourseCode(rawShort) || null;
+    const finalColor = matchedSarv?.color || (matchedSarv ? getToneForCourse(matchedSarv) : getToneForCourse(finalCourseName));
     const isSubmitted = a.submissionStatus?.status === 'submitted' || Boolean(a.isSubmitted) || Boolean(a.gradeInfo?.grade);
     const dueMs = a.duedate ? (a.duedate > 1e11 ? a.duedate : a.duedate * 1000) : null;
 
     return {
       title: cleanPersianText(a.name || 'تکلیف کلاسی'),
       courseName: finalCourseName,
+      courseCode: finalCourseCode,
+      color: finalColor,
       dueDate: dueMs ? new Date(dueMs).toISOString() : null,
       dueTimestamp: dueMs,
       status: isSubmitted ? 'done' : 'todo',
