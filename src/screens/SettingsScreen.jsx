@@ -67,6 +67,19 @@ function LinkedinIcon({ className = 'w-4 h-4' }) {
   );
 }
 
+function SarvestanIcon({ className = 'w-4 h-4' }) {
+  return (
+    <svg
+      viewBox="0 0 1080 1080"
+      className={className}
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M540,167.08 C540,167.08 213.25,912.92 540,912.92 C866.75,912.92 540,167.08 540,167.08 Z" />
+    </svg>
+  );
+}
+
 export default function SettingsScreen() {
   const { session, siteInfo, assignments, logout } = useMoodleAuth();
   const [msg, setMsg] = useState('');
@@ -586,7 +599,7 @@ export default function SettingsScreen() {
       <div className="sarv-card p-4 space-y-3 shadow-sm border-emerald-500/30 bg-emerald-500/5">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-black text-base-content flex items-center gap-2">
-            <Share2 className="w-4 h-4 text-emerald-500" />
+            <SarvestanIcon className="w-4 h-4 text-emerald-500 shrink-0" />
             <span>پل ارتباطی و اتصال با داشبورد سروستان</span>
           </h3>
           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 border border-emerald-500/25">
