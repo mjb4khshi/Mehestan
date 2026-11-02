@@ -327,11 +327,15 @@ export function exportAssignmentToSarvestan(assignment, courseName = '') {
   const cleanName = cleanCourseName(rawName);
   const matchedSarv = matchCourseWithSarvestan(cleanName);
   const finalCourseName = matchedSarv?.name || cleanName;
+  const isSubmitted = assignment.submissionStatus?.status === 'submitted' || Boolean(assignment.isSubmitted) || Boolean(assignment.gradeInfo?.grade);
+  const dueMs = assignment.duedate ? (assignment.duedate > 1e11 ? assignment.duedate : assignment.duedate * 1000) : null;
 
   const payload = {
     title: cleanPersianText(assignment.name || 'تکلیف کلاسی'),
     courseName: finalCourseName,
-    dueDate: assignment.duedate ? new Date(assignment.duedate * 1000).toISOString() : null,
+    dueDate: dueMs ? new Date(dueMs).toISOString() : null,
+    dueTimestamp: dueMs,
+    status: isSubmitted ? 'done' : 'todo',
     source: 'mehestan',
     externalId: String(assignment.id),
     syncTimestamp: Date.now(),
@@ -354,11 +358,15 @@ export function exportAllAssignmentsToSarvestan(assignments = []) {
     const cleanName = cleanCourseName(rawName);
     const matchedSarv = matchCourseWithSarvestan(cleanName);
     const finalCourseName = matchedSarv?.name || cleanName;
+    const isSubmitted = a.submissionStatus?.status === 'submitted' || Boolean(a.isSubmitted) || Boolean(a.gradeInfo?.grade);
+    const dueMs = a.duedate ? (a.duedate > 1e11 ? a.duedate : a.duedate * 1000) : null;
 
     return {
       title: cleanPersianText(a.name || 'تکلیف کلاسی'),
       courseName: finalCourseName,
-      dueDate: a.duedate ? new Date(a.duedate * 1000).toISOString() : null,
+      dueDate: dueMs ? new Date(dueMs).toISOString() : null,
+      dueTimestamp: dueMs,
+      status: isSubmitted ? 'done' : 'todo',
       source: 'mehestan',
       externalId: String(a.id),
       syncTimestamp: Date.now(),
