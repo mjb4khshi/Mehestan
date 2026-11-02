@@ -347,6 +347,7 @@ export function exportAssignmentToSarvestan(assignment, courseName = '') {
   const finalColor = matchedSarv?.color || (matchedSarv ? getToneForCourse(matchedSarv) : getToneForCourse(finalCourseName));
   const isSubmitted = assignment.submissionStatus?.status === 'submitted' || Boolean(assignment.isSubmitted) || Boolean(assignment.gradeInfo?.grade);
   const dueMs = assignment.duedate ? (assignment.duedate > 1e11 ? assignment.duedate : assignment.duedate * 1000) : null;
+  const introClean = assignment.intro ? cleanPersianText(assignment.intro.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()) : '';
 
   const payload = {
     title: cleanPersianText(assignment.name || 'تکلیف کلاسی'),
@@ -355,6 +356,7 @@ export function exportAssignmentToSarvestan(assignment, courseName = '') {
     color: finalColor,
     dueDate: dueMs ? new Date(dueMs).toISOString() : null,
     dueTimestamp: dueMs,
+    description: introClean || null,
     status: isSubmitted ? 'done' : 'todo',
     source: 'mehestan',
     externalId: String(assignment.id),
@@ -391,6 +393,7 @@ export function exportAllAssignmentsToSarvestan(assignments = []) {
     const finalColor = matchedSarv?.color || (matchedSarv ? getToneForCourse(matchedSarv) : getToneForCourse(finalCourseName));
     const isSubmitted = a.submissionStatus?.status === 'submitted' || Boolean(a.isSubmitted) || Boolean(a.gradeInfo?.grade);
     const dueMs = a.duedate ? (a.duedate > 1e11 ? a.duedate : a.duedate * 1000) : null;
+    const introClean = a.intro ? cleanPersianText(a.intro.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()) : '';
 
     return {
       title: cleanPersianText(a.name || 'تکلیف کلاسی'),
@@ -399,6 +402,7 @@ export function exportAllAssignmentsToSarvestan(assignments = []) {
       color: finalColor,
       dueDate: dueMs ? new Date(dueMs).toISOString() : null,
       dueTimestamp: dueMs,
+      description: introClean || null,
       status: isSubmitted ? 'done' : 'todo',
       source: 'mehestan',
       externalId: String(a.id),
