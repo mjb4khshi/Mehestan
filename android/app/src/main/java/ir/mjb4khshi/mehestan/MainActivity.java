@@ -103,16 +103,26 @@ public class MainActivity extends BridgeActivity {
                             icsFile
                         );
 
-                        Intent shareIntent = new Intent(Intent.ACTION_SEND);
-                        shareIntent.setType("text/calendar");
-                        shareIntent.putExtra(Intent.EXTRA_STREAM, contentUri);
-                        shareIntent.putExtra(Intent.EXTRA_SUBJECT, "تقویم موعد تکالیف مهستان");
-                        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        try {
+                            Intent viewIntent = new Intent(Intent.ACTION_VIEW);
+                            viewIntent.setDataAndType(contentUri, "text/calendar");
+                            viewIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                            Intent chooser = Intent.createChooser(viewIntent, "افزودن به تقویم گوشی");
+                            chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(chooser);
+                            return true;
+                        } catch (android.content.ActivityNotFoundException anf) {
+                            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                            shareIntent.setType("text/calendar");
+                            shareIntent.putExtra(Intent.EXTRA_STREAM, contentUri);
+                            shareIntent.putExtra(Intent.EXTRA_SUBJECT, "تقویم موعد تکالیف مهستان");
+                            shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
-                        Intent chooser = Intent.createChooser(shareIntent, "خروجی تقویم و ددلاین‌ها");
-                        chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-                        startActivity(chooser);
-                        return true;
+                            Intent chooser = Intent.createChooser(shareIntent, "خروجی تقویم و ددلاین‌ها");
+                            chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(chooser);
+                            return true;
+                        }
                     } catch (Exception e) {
                         e.printStackTrace();
                         return false;

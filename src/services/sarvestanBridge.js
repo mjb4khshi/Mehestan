@@ -516,6 +516,37 @@ function dispatchToSarvestan(type, payload) {
 }
 
 /**
+ * Escape special characters in iCalendar RFC 5545 format
+ */
+function escapeIcsText(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r?\n/g, '\\n');
+}
+
+/**
+ * Resolve deadline timestamp in milliseconds
+ */
+function resolveDeadlineMs(item) {
+  if (!item) return null;
+  const raw = item.duedate ?? item.timeclose ?? item.dueTimestamp ?? item.dueDate;
+  if (!raw) return null;
+  if (typeof raw === 'number') {
+    return raw > 1e11 ? raw : raw * 1000;
+  }
+  if (typeof raw === 'string') {
+    const parsed = Date.parse(raw);
+    if (!isNaN(parsed)) return parsed;
+    const num = Number(raw);
+    if (!isNaN(num) && num > 0) return num > 1e11 ? num : num * 1000;
+  }
+  return null;
+}
+
+/**
  * تولید و دانلود فایل استاندارد تقویم (.ics iCalendar) جهت وارد کردن مستقیم به تقویم سروستان یا گوشی
  */
 export function exportAssignmentsAsIcs(assignments = []) {
@@ -538,22 +569,40 @@ export function exportAssignmentsAsIcs(assignments = []) {
   ];
 
   assignments.forEach((a) => {
-    if (!a.duedate) return;
-    const dueDate = new Date(a.duedate * 1000);
-    const startDate = new Date(dueDate.getTime() - 60 * 60 * 1000);
+    const dueMs = resolveDeadlineMs(a);
+    if (!dueMs) return;
+    const dueDate = new Date(dueMs);
+    // برای نمایش دقیق سررسید در تقویم، آغاز رویداد دقیقا روی زمان ددلاین قرار می‌گیرد
+    const eventEndDate = new Date(dueMs + 15 * 60 * 1000);
+
+    const courseTitle = cleanCourseName(a.courseName || a.courseShortName || a.course || '');
+    const taskTitle = cleanPersianText(a.name || a.title || 'تکلیف کلاسی');
+    const summary = courseTitle ? `[${courseTitle}] ${taskTitle}` : taskTitle;
+
+    const descLines = [];
+    if (courseTitle) descLines.push(`درس: ${courseTitle}`);
+    if (a.intro) descLines.push(cleanPersianText(a.intro));
+    descLines.push('ثبت شده توسط دستیار آموزشی مهستان');
+    const description = descLines.join('\n\n');
 
     lines.push('BEGIN:VEVENT');
-    lines.push(`UID:mehestan-assign-${a.id}@kntu.ac.ir`);
+    lines.push(`UID:mehestan-assign-${a.id || Math.random().toString(36).substring(2)}@kntu.ac.ir`);
     lines.push(`DTSTAMP:${formatIcsDate(new Date())}`);
-    lines.push(`DTSTART:${formatIcsDate(startDate)}`);
-    lines.push(`DTEND:${formatIcsDate(dueDate)}`);
-    lines.push(`SUMMARY:${a.name || 'تکلیف کلاسی'}`);
-    lines.push(`DESCRIPTION:موعد تحویل تکلیف درس ${a.courseName || ''}`);
+    lines.push(`DTSTART:${formatIcsDate(dueDate)}`);
+    lines.push(`DTEND:${formatIcsDate(eventEndDate)}`);
+    lines.push(`DUE:${formatIcsDate(dueDate)}`);
+    lines.push(`SUMMARY:${escapeIcsText(summary)}`);
+    lines.push(`DESCRIPTION:${escapeIcsText(description)}`);
     lines.push('STATUS:CONFIRMED');
     lines.push('BEGIN:VALARM');
     lines.push('TRIGGER:-PT3H');
     lines.push('ACTION:DISPLAY');
-    lines.push(`DESCRIPTION:یادآور ددلاین تکلیف ${a.name || ''}`);
+    lines.push(`DESCRIPTION:${escapeIcsText('یادآور ددلاین ۳ ساعت قبل: ' + summary)}`);
+    lines.push('END:VALARM');
+    lines.push('BEGIN:VALARM');
+    lines.push('TRIGGER:-PT1D');
+    lines.push('ACTION:DISPLAY');
+    lines.push(`DESCRIPTION:${escapeIcsText('یادآور ددلاین ۱ روز قبل: ' + summary)}`);
     lines.push('END:VALARM');
     lines.push('END:VEVENT');
   });

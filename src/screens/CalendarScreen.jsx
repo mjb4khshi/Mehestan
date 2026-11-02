@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Calendar as CalendarIcon, Clock, CheckSquare, ChevronLeft } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, CheckSquare, ChevronLeft, Download } from 'lucide-react';
 import { useMoodleAuth } from '../context/MoodleAuthContext';
-import { getToneForCourse, TONE_STYLES } from '../services/sarvestanBridge';
+import { getToneForCourse, TONE_STYLES, exportAssignmentsAsIcs } from '../services/sarvestanBridge';
 import {
   cleanCourseName,
   cleanPersianText,
@@ -14,19 +14,47 @@ import AssignmentDetailModal from '../components/AssignmentDetailModal';
 export default function CalendarScreen() {
   const { assignments, courses = [] } = useMoodleAuth();
   const [selectedAssignment, setSelectedAssignment] = useState(null);
+  const [msg, setMsg] = useState('');
 
   const sortedEvents = [...assignments]
-    .filter((a) => a.duedate)
-    .sort((a, b) => a.duedate - b.duedate);
+    .filter((a) => a.duedate || a.timeclose)
+    .sort((a, b) => (a.duedate || a.timeclose || 0) - (b.duedate || b.timeclose || 0));
+
+  const handleExportIcs = () => {
+    try {
+      exportAssignmentsAsIcs(assignments);
+      setMsg('خروجی تقویم (.ics) با موفقیت دریافت شد.');
+      setTimeout(() => setMsg(''), 3500);
+    } catch (e) {
+      setMsg(e.message || 'خطا در خروجی تقویم');
+      setTimeout(() => setMsg(''), 3500);
+    }
+  };
 
   return (
     <div className="p-3.5 sm:p-4 space-y-4 max-w-2xl mx-auto min-w-0">
-      <div className="sarv-card p-4 space-y-1 shadow-sm">
-        <h2 className="text-sm font-black text-base-content flex items-center gap-2">
-          <CalendarIcon className="w-4 h-4 text-primary" />
-          <span>تقویم موعدهای تحویل و آزمون‌ها</span>
-        </h2>
+      <div className="sarv-card p-4 space-y-2 shadow-sm">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-black text-base-content flex items-center gap-2">
+            <CalendarIcon className="w-4 h-4 text-primary" />
+            <span>تقویم موعدهای تحویل و آزمون‌ها</span>
+          </h2>
+          {sortedEvents.length > 0 && (
+            <button
+              type="button"
+              onClick={handleExportIcs}
+              className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition flex items-center gap-1 cursor-pointer shrink-0"
+              title="دریافت فایل استاندارد iCalendar"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>خروجی تقویم (.ics)</span>
+            </button>
+          )}
+        </div>
         <p className="text-xs text-neutral">زمان‌بندی تاریخ سررسید تکالیف، پروژه‌ها و کوییزهای درسی با رنگ هماهنگ دروس</p>
+        {msg && (
+          <p className="text-xs font-bold text-success animate-fade-in">{msg}</p>
+        )}
       </div>
 
       {sortedEvents.length === 0 ? (
