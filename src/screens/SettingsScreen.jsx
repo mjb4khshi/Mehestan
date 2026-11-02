@@ -213,7 +213,7 @@ export default function SettingsScreen() {
   const handleSyncColors = () => {
     try {
       requestSarvestanScheduleSync();
-      setMsg('درخواست دریافت رنگ و مشخصات دروس به سروستان ارسال گردید...');
+      setMsg('درخواست دریافت اطلاعات از سروستان ارسال گردید...');
       setTimeout(() => setMsg(''), 3500);
     } catch (err) {
       setMsg(err.message || 'خطا در ارتباط با سروستان');
@@ -610,8 +610,8 @@ export default function SettingsScreen() {
             onClick={handleSyncColors}
             className="w-full py-2.5 px-3 rounded-xl bg-primary text-primary-content text-xs font-black hover:brightness-110 active:scale-98 transition cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
           >
-            <Palette className="w-3.5 h-3.5" />
-            <span>همگام‌سازی رنگ دروس</span>
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>همگام‌سازی اطلاعات از سروستان</span>
           </button>
           <button
             type="button"
