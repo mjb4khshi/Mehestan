@@ -1,0 +1,150 @@
+name: Build & Release Mehestan
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-release:
+    name: Build APK & Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci || npm install
+
+      - name: Build Web Bundle
+        run: npm run build
+
+      - name: Sync Web Assets to Android
+        run: |
+          mkdir -p android/app/src/main/assets/public
+          cp -r dist/* android/app/src/main/assets/public/
+
+      - name: Check Keystore Secrets
+        id: secrets
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "has_keystore=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_keystore=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Release Keystore
+        if: steps.secrets.outputs.has_keystore == 'true'
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          mkdir -p keystore
+          echo "$ANDROID_KEYSTORE_B64" | base64 -d > keystore/ci-release.jks
+          cat > keystore.properties <<EOF
+          storeFile=keystore/ci-release.jks
+          storePassword=${ANDROID_KEYSTORE_PASSWORD}
+          keyAlias=${ANDROID_KEY_ALIAS}
+          keyPassword=${ANDROID_KEY_PASSWORD}
+          EOF
+
+      - name: Build Android Release APK
+        if: steps.secrets.outputs.has_keystore == 'true'
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          for i in 1 2 3; do
+            ./gradlew clean assembleRelease --no-daemon && exit 0
+            echo "gradle attempt $i failed; retrying..."
+            sleep $((i * 15))
+          done
+          exit 1
+
+      - name: Build Android Debug APK (Fallback)
+        if: steps.secrets.outputs.has_keystore == 'false'
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          for i in 1 2 3; do
+            ./gradlew clean assembleDebug --no-daemon && exit 0
+            echo "gradle attempt $i failed; retrying..."
+            sleep $((i * 15))
+          done
+          exit 1
+
+      - name: Collect Android APK
+        run: |
+          mkdir -p dist-artifacts
+          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            cp android/app/build/outputs/apk/release/app-release.apk dist-artifacts/mehestan.apk
+          elif [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
+            cp android/app/build/outputs/apk/debug/app-debug.apk dist-artifacts/mehestan.apk
+          fi
+          ls -la dist-artifacts/
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mehestan-release-bundle
+          path: dist-artifacts/*
+          if-no-files-found: error
+
+      - name: Determine Version and Release Metadata
+        id: release_meta
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+          else
+            TAG="v${VERSION}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "title=مهستان نگارش ${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_meta.outputs.tag }}
+          name: ${{ steps.release_meta.outputs.title }}
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+          make_latest: true
+          files: |
+            dist-artifacts/mehestan.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
