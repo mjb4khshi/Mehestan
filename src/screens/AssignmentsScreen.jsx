@@ -169,7 +169,7 @@ export default function AssignmentsScreen() {
               whileTap={{ scale: 0.98 }}
               type="button"
               onClick={() => {
-                const list = filteredAssignments.length > 0 ? filteredAssignments : assignments;
+                const list = assignments;
                 exportAllAssignmentsToSarvestan(list);
                 setExportedMsg(`${toFaDigits(list.length)} تکلیف به پلنر سروستان ارسال شد.`);
                 setTimeout(() => setExportedMsg(''), 3500);
